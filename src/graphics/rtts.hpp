@@ -50,7 +50,7 @@ private:
     unsigned DepthStencilTexture;
 
     unsigned shadowColorTex, shadowNormalTex, shadowDepthTex;
-    FrameBuffer* m_shadow_FBO, *m_RSM;
+    FrameBuffer* m_shadow_FBO, *m_RSM, *m_RH_FBO;
 
     LEAK_CHECK();
 };

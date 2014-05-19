@@ -281,6 +281,7 @@ void Shaders::loadShaders()
     FullScreenShader::DiffuseEnvMapShader::init();
     FullScreenShader::ShadowedSunLightShader::init();
     FullScreenShader::ShadowedSunLightDebugShader::init();
+    FullScreenShader::RadianceHintsConstructionShader::init();
     FullScreenShader::MotionBlurShader::init();
     FullScreenShader::GodFadeShader::init();
     FullScreenShader::GodRayShader::init();
@@ -2232,6 +2233,32 @@ namespace FullScreenShader
         glUniform1i(uniform_ntex, TU_ntex);
         glUniform1i(uniform_dtex, TU_dtex);
         glUniform1i(uniform_shadowtex, TU_shadowtex);
+    }
+
+    GLuint RadianceHintsConstructionShader::Program;
+    GLuint RadianceHintsConstructionShader::uniform_ctex;
+    GLuint RadianceHintsConstructionShader::uniform_ntex;
+    GLuint RadianceHintsConstructionShader::uniform_dtex;
+    GLuint RadianceHintsConstructionShader::vao;
+
+    void RadianceHintsConstructionShader::init()
+    {
+        Program = LoadProgram(
+            GL_VERTEX_SHADER, file_manager->getAsset("shaders/screenquad.vert").c_str(),
+            GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/rh.frag").c_str());
+        uniform_ctex = glGetUniformLocation(Program, "ctex");
+        uniform_ntex = glGetUniformLocation(Program, "ntex");
+        uniform_dtex = glGetUniformLocation(Program, "dtex");
+        vao = createVAO(Program);
+        GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
+        glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
+    }
+
+    void RadianceHintsConstructionShader::setUniforms(unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex)
+    {
+        glUniform1i(uniform_ctex, TU_ctex);
+        glUniform1i(uniform_ntex, TU_ntex);
+        glUniform1i(uniform_dtex, TU_dtex);
     }
 
     GLuint Gaussian17TapHShader::Program;
