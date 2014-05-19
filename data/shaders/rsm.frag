@@ -8,5 +8,5 @@ out vec3 RSMNormals;
 void main()
 {
     RSMColor = texture(tex, uv).xyz;
-    RSMNormals = nor;
+    RSMNormals = .5 * nor + .5;
 }

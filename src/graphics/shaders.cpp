@@ -2239,6 +2239,8 @@ namespace FullScreenShader
     GLuint RadianceHintsConstructionShader::uniform_ctex;
     GLuint RadianceHintsConstructionShader::uniform_ntex;
     GLuint RadianceHintsConstructionShader::uniform_dtex;
+    GLuint RadianceHintsConstructionShader::uniform_slice;
+    GLuint RadianceHintsConstructionShader::uniform_extents;
     GLuint RadianceHintsConstructionShader::vao;
 
     void RadianceHintsConstructionShader::init()
@@ -2249,16 +2251,20 @@ namespace FullScreenShader
         uniform_ctex = glGetUniformLocation(Program, "ctex");
         uniform_ntex = glGetUniformLocation(Program, "ntex");
         uniform_dtex = glGetUniformLocation(Program, "dtex");
+        uniform_slice = glGetUniformLocation(Program, "slice");
+        uniform_extents = glGetUniformLocation(Program, "extents");
         vao = createVAO(Program);
         GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
         glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
     }
 
-    void RadianceHintsConstructionShader::setUniforms(unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex)
+    void RadianceHintsConstructionShader::setUniforms(const core::vector3df &extents, unsigned slice, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex)
     {
         glUniform1i(uniform_ctex, TU_ctex);
         glUniform1i(uniform_ntex, TU_ntex);
         glUniform1i(uniform_dtex, TU_dtex);
+        glUniform1i(uniform_slice, slice);
+        glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
     }
 
     GLuint Gaussian17TapHShader::Program;

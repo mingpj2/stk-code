@@ -29,24 +29,13 @@
 
 // ----------------  INPUT ---------------------------------------------------------
 
-uniform ivec3 resolution;       // The volume resolution 
 uniform int slice;              // The current volume slice
-uniform sampler3D Noise;        // A pre-computed 3D noise texture (32X32X32). Value range (r,g,b): [0,1]
 uniform float R_wcs;            // Rmax: maximum sampling distance (in WCS units)
-uniform vec3 bbox_min;          // Bounding box limits of the radiance hints volume
-uniform vec3 bbox_max;          //
+uniform vec3 extents;          // Bounding box limits of the radiance hints volume
 uniform sampler2D dtex;         // RSM depth
 uniform sampler2D ctex;         // RSM vpl flux
 uniform sampler2D ntex;         // RSM normals
-uniform sampler2D Depth;        // camera depth buffer
-uniform mat4 L;                 // Light transformation matrix ( WCS -> LCS(RSM))
-uniform mat4 L_inv;             // Inverse light transformation matrix ( LCS(RSM) -> WCS)
-uniform mat4 L_ecs;             // Light modelview transformation matrix ( WCS -> Light ECS )
-uniform mat4  MVP;              // Final modelview and projection camera matrix (CSS -> WCS)    
 uniform int num_lights;         // Number of GI lights
-uniform float spread;           // RSM parametric sampling radius
-uniform vec3 light_pos;         // Current light position in WCS coords
-uniform vec3 light_dir;         // Current light direction in WCS coords
 
 layout (std140) uniform MatrixesData
 {
@@ -55,6 +44,7 @@ layout (std140) uniform MatrixesData
     mat4 InverseViewMatrix;
     mat4 InverseProjectionMatrix;
     mat4 ShadowViewProjMatrixes[4];
+    vec2 screen;
 };
 
 out vec4 VariousData;
@@ -62,45 +52,37 @@ out vec4 SHRed;
 out vec4 SHGreen;
 out vec4 SHBlue;
 
-#define SAMPLES 16
+#define SAMPLES 6
 #define DIM_X 32
 #define DIM_Y 32
 #define DIM_Z 32
 
 // ----------------  SH functions -------------------------------------------------
 
-vec4 SHBasis (const in vec3 dir) 
-{ 
-    float   L00  = 0.282095; 
-    float   L1_1 = 0.488603 * dir.y; 
-    float   L10  = 0.488603 * dir.z; 
-    float   L11  = 0.488603 * dir.x; 
-    return vec4 (L11, L1_1, L10, L00); 
+vec4 SHBasis (const in vec3 dir)
+{
+    float   L00  = 0.282095;
+    float   L1_1 = 0.488603 * dir.y;
+    float   L10  = 0.488603 * dir.z;
+    float   L11  = 0.488603 * dir.x;
+    return vec4 (L11, L1_1, L10, L00);
 }
 
-void RGB2SH (in vec3 dir, in vec3 L, out vec4 sh_r, out vec4 sh_g, out vec4 sh_b) 
-{ 
-    vec4 sh = SHBasis (dir); 
-    sh_r = L.r * sh; 
-    sh_g = L.g * sh; 
-    sh_b = L.b * sh; 
+void RGB2SH (in vec3 dir, in vec3 L, out vec4 sh_r, out vec4 sh_g, out vec4 sh_b)
+{
+    vec4 sh = SHBasis (dir);
+    sh_r = L.r * sh;
+    sh_g = L.g * sh;
+    sh_b = L.b * sh;
 }
 
 // ----------------  Coordinate transformations -----------------------------------
 
-vec3 PointWCS2CSS(vec3 pos)
-{ 
-    vec4 p_css = MVP*vec4(pos, 1);
-    return p_css.xyz/p_css.w;
-} 
-
 vec3 VectorLECS2WCS(vec3 pos)
-{ 
-    // For vectors, the transposed inverse matrix from Light ECS to WCS is used 
-    // (i.e. the transposed L_ecs). You could also pass the matrix transposed 
-    // outside the shader.
-    return (transpose(L_ecs)*vec4(pos,0)).xyz;
-} 
+{
+    // ntex store normals in world space
+    return pos;
+}
 
 vec2 ShadowProjection(vec3 pos)
 {
@@ -112,6 +94,14 @@ vec2 ShadowProjection(vec3 pos)
 
 // ----------------  Main shader function -----------------------------------------
 
+const vec3 rand_samples[6] = {
+    vec3(1., 0., 0.),
+    vec3(-1., 0., 0.),
+    vec3(0., 1., 0.),
+    vec3(0., -1., 0.),
+    vec3(0., 0., 1.),
+    vec3(0., 0., -1.),
+};
 
 void main(void)
 {
@@ -119,12 +109,8 @@ void main(void)
     int   gy = int(gl_FragCoord.y);
     int   gx = int(gl_FragCoord.x);
     int   gz = slice;
-    vec3  extents = bbox_max-bbox_min;
-    vec3  stratum;
-    stratum.x = extents.x / (DIM_X - 1);
-    stratum.y = extents.y / (DIM_Y - 1);
-    stratum.z = extents.z / (DIM_Z - 1);
-    vec3  RHcenter = bbox_min + vec3(gx, gy, gz) * stratum;
+    vec3  stratum = extents / vec3(DIM_X - 1., DIM_Y - 1., DIM_Z - 1.);
+    vec3  RHcenter = vec3(gx, gy, gz) * stratum;
 
     // Project the RH location on the RSM and determine the
     // center of the sampling disk
@@ -136,17 +122,17 @@ void main(void)
 
     // Declare and initialize various parameters
     vec3  smc, smp, smn;
-    vec4  SHr=vec4(0.); // accumulated SH coefs for the incident radiance from
-    vec4  SHg=vec4(0.); // all RSM samples
-    vec4  SHb=vec4(0.);
-    vec3  normal;
+    vec4  SHr = vec4(0.); // accumulated SH coefs for the incident radiance from
+    vec4  SHg = vec4(0.); // all RSM samples
+    vec4  SHb = vec4(0.);
     vec3 color;
 
     for (int i = 0; i < SAMPLES; i++)
     {
         // produce a new sample location on the RSM texture
-        vec3 rnd = 2.0 * texture(Noise, 14 * RHcenter / extents + vec3(i,0,0) / SAMPLES).xyz - vec3(1.0,1.0,1.0);
-        vec2 uv = l_uv + vec2(rnd.x * spread * cos(6.283*rnd.y), rnd.x * spread * sin(6.283 * rnd.y));
+        vec3 rnd = rand_samples[i] / 2.;
+        vec2 uv = l_uv + vec2(rnd.x * cos(6.283*rnd.y), rnd.x * sin(6.283 * rnd.y));
+        uv /= screen;
 
         // produce a new sampling location in the RH stratum
         vec3 p = RHcenter + (0.5 * rnd) * stratum;
@@ -154,22 +140,22 @@ void main(void)
         // determine the the WCS coordinates of the RSM sample position (smp) and normal (smn)
         // and read the corresponding lighting (smc)
         float depth = texture2D(dtex, uv).z;
-        vec4 pos_LCS = L_inv * (2. * vec4(uv, depth, 1.) - 1.);
+        vec4 pos_LCS = inverse(ShadowViewProjMatrixes[2]) * (2. * vec4(uv, depth, 1.) - 1.);
         smp = pos_LCS.xyz / pos_LCS.w;
         smc = texture(ctex, uv).xyz;
         vec4 normal = texture(ntex, uv);
-        smn = vec3(normal.x*2.0-1.0,normal.y*2.0-1.0,normal.z);
+        smn = vec3(2. * normal.xy - 1., normal.z);
         smn = normalize(VectorLECS2WCS(normalize(smn)));
 
         // Normalize distance to RSM sample
         dist = distance(p,smp)/R_wcs;
         // Determine the incident direction.
         // Avoid very close samples (and numerical instability problems)
-        vec3 dir = (dist <= 0.007) ? vec3(0,0,0) : normalize(p-smp);
+        vec3 dir = (dist <= 0.007) ? vec3(0.) : normalize(p-smp);
         float dotprod = max(dot(dir, smn), 0.);
-        float FF = dotprod/(0.1+dist*dist);
+        float FF = dotprod / (0.1 + dist * dist);
 
-        color = smc*FF;
+        color = smc * FF;
         vec4 shr, shg, shb;
         // encode radiance into SH coefs and accumulate to RH
         RGB2SH (dir, color.rgb, shr, shg, shb);
