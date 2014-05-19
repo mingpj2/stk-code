@@ -273,8 +273,6 @@ void Shaders::loadShaders()
     FullScreenShader::Gaussian17TapVShader::init();
     FullScreenShader::Gaussian6HBlurShader::init();
     FullScreenShader::Gaussian6VBlurShader::init();
-    FullScreenShader::PenumbraHShader::init();
-    FullScreenShader::PenumbraVShader::init();
     FullScreenShader::GlowShader::init();
     FullScreenShader::PassThroughShader::init();
     FullScreenShader::LinearizeDepthShader::init();
@@ -2290,46 +2288,6 @@ namespace FullScreenShader
         uniform_tex = glGetUniformLocation(Program, "tex");
         uniform_pixel = glGetUniformLocation(Program, "pixel");
         vao = createVAO(Program);
-    }
-
-    GLuint PenumbraHShader::Program;
-    GLuint PenumbraHShader::uniform_tex;
-    GLuint PenumbraHShader::uniform_pixel;
-    GLuint PenumbraHShader::vao;
-    void PenumbraHShader::init()
-    {
-        Program = LoadProgram(
-            GL_VERTEX_SHADER, file_manager->getAsset("shaders/screenquad.vert").c_str(),
-            GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/penumbrah.frag").c_str());
-        uniform_tex = glGetUniformLocation(Program, "tex");
-        uniform_pixel = glGetUniformLocation(Program, "pixel");
-        vao = createVAO(Program);
-    }
-
-    void PenumbraHShader::setUniforms(const core::vector2df &pixels, GLuint TU_tex)
-    {
-        glUniform2f(uniform_pixel, pixels.X, pixels.Y);
-        glUniform1i(uniform_tex, TU_tex);
-    }
-
-    GLuint PenumbraVShader::Program;
-    GLuint PenumbraVShader::uniform_tex;
-    GLuint PenumbraVShader::uniform_pixel;
-    GLuint PenumbraVShader::vao;
-    void PenumbraVShader::init()
-    {
-        Program = LoadProgram(
-            GL_VERTEX_SHADER, file_manager->getAsset("shaders/screenquad.vert").c_str(),
-            GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/penumbrav.frag").c_str());
-        uniform_tex = glGetUniformLocation(Program, "tex");
-        uniform_pixel = glGetUniformLocation(Program, "pixel");
-        vao = createVAO(Program);
-    }
-
-    void PenumbraVShader::setUniforms(const core::vector2df &pixels, GLuint TU_tex)
-    {
-        glUniform2f(uniform_pixel, pixels.X, pixels.Y);
-        glUniform1i(uniform_tex, TU_tex);
     }
 
     GLuint ShadowGenShader::Program;

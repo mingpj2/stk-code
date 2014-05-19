@@ -658,28 +658,6 @@ public:
     static void init();
 };
 
-class PenumbraHShader
-{
-public:
-    static GLuint Program;
-    static GLuint uniform_tex, uniform_pixel;
-    static GLuint vao;
-
-    static void init();
-    static void setUniforms(const core::vector2df &pixels, GLuint TU_tex);
-};
-
-class PenumbraVShader
-{
-public:
-    static GLuint Program;
-    static GLuint uniform_tex, uniform_pixel;
-    static GLuint vao;
-
-    static void init();
-    static void setUniforms(const core::vector2df &pixels, GLuint TU_tex);
-};
-
 class ShadowGenShader
 {
 public:
