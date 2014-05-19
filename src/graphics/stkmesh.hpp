@@ -45,6 +45,7 @@ struct GLMesh {
     GLuint vao_glow_pass;
     GLuint vao_displace_pass;
     GLuint vao_displace_mask_pass;
+    GLuint vao_rsm_pass;
     GLuint vao_shadow_pass;
     GLuint vertex_buffer;
     GLuint index_buffer;
@@ -126,6 +127,9 @@ void drawSplatting(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionM
 void drawGrassPass2(const GLMesh &mesh, const core::matrix4 & ModelViewProjectionMatrix, core::vector3df windDir);
 void drawObjectRimLimit(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TransposeInverseModelView, const core::matrix4 &TextureMatrix);
 void drawObjectUnlit(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
+
+// RSM pass
+void drawRSM(const GLMesh &mesh, const core::matrix4 &ModelMatrix);
 
 // Shadow pass
 void drawShadowRef(const GLMesh &mesh, const core::matrix4 &ModelMatrix);

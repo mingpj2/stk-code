@@ -54,7 +54,7 @@ static GLuint generateFBO(GLuint ColorAttachement, GLuint DepthAttachement)
 RTT::RTT(size_t width, size_t height)
 {
     m_shadow_FBO = NULL;
-    initGL();
+    m_RSM = NULL;
     using namespace video;
     using namespace core;
 
@@ -199,6 +199,23 @@ RTT::RTT(size_t width, size_t height)
         somevector.clear();
         somevector.push_back(shadowColorTex);
         m_shadow_FBO = new FrameBuffer(somevector, shadowDepthTex, 1024, 1024, true);
+
+        //Todo : use "normal" shadowtex
+        GLuint RSM_Color, RSM_Normal, RSM_Depth;
+        glGenTextures(1, &RSM_Color);
+        glBindTexture(GL_TEXTURE_2D, RSM_Color);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+        glGenTextures(1, &RSM_Normal);
+        glBindTexture(GL_TEXTURE_2D, RSM_Normal);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1024, 1024, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+        glGenTextures(1, &RSM_Depth);
+        glBindTexture(GL_TEXTURE_2D, RSM_Depth);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, 1024, 1024, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+
+        somevector.clear();
+        somevector.push_back(RSM_Color);
+        somevector.push_back(RSM_Normal);
+        m_RSM = new FrameBuffer(somevector, RSM_Depth, 1024, 1024, true);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

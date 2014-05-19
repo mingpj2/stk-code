@@ -54,6 +54,7 @@ enum DebugMenuCommand
     DEBUG_GRAPHICS_MIPMAP_VIZ,
     DEBUG_GRAPHICS_NORMALS_VIZ,
     DEBUG_GRAPHICS_SSAO_VIZ,
+    DEBUG_GRAPHICS_RSM_VIZ,
     DEBUG_GRAPHICS_SHADOW_VIZ,
     DEBUG_GRAPHICS_LIGHT_VIZ,
     DEBUG_GRAPHICS_DISTORT_VIZ,
@@ -157,6 +158,7 @@ bool onEvent(const SEvent &event)
             sub->addItem(L"Mipmap viz", DEBUG_GRAPHICS_MIPMAP_VIZ );
             sub->addItem(L"Normals viz", DEBUG_GRAPHICS_NORMALS_VIZ );
             sub->addItem(L"SSAO viz", DEBUG_GRAPHICS_SSAO_VIZ );
+            sub->addItem(L"RSM viz", DEBUG_GRAPHICS_RSM_VIZ);
             sub->addItem(L"Shadow viz", DEBUG_GRAPHICS_SHADOW_VIZ );
             sub->addItem(L"Light viz", DEBUG_GRAPHICS_LIGHT_VIZ );
             sub->addItem(L"Distort viz", DEBUG_GRAPHICS_DISTORT_VIZ );
@@ -264,6 +266,14 @@ bool onEvent(const SEvent &event)
 
                     irr_driver->resetDebugModes();
                     irr_driver->toggleSSAOViz();
+                }
+                else if (cmdID == DEBUG_GRAPHICS_RSM_VIZ)
+                {
+                    World* world = World::getWorld();
+                    if (world != NULL) world->getPhysics()->setDebugMode(IrrDebugDrawer::DM_NONE);
+
+                    irr_driver->resetDebugModes();
+                    irr_driver->toggleRSM();
                 }
                 else if (cmdID == DEBUG_GRAPHICS_SHADOW_VIZ)
                 {

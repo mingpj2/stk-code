@@ -675,6 +675,24 @@ void drawShadow(const GLMesh &mesh, const core::matrix4 &ModelMatrix)
     glDrawElementsInstanced(ptype, count, itype, 0, 4);
 }
 
+void drawRSM(const GLMesh &mesh, const core::matrix4 &ModelMatrix)
+{
+    irr_driver->IncreaseObjectCount();
+    GLenum ptype = mesh.PrimitiveType;
+    GLenum itype = mesh.IndexType;
+    size_t count = mesh.IndexCount;
+
+    if (!mesh.textures[0])
+        return;
+    compressTexture(mesh.textures[0], true);
+    setTexture(0, getTextureGLuint(mesh.textures[0]), GL_LINEAR, GL_LINEAR_MIPMAP_LINEAR, true);
+    MeshShader::RSMShader::setUniforms(ModelMatrix, 0);
+
+    assert(mesh.vao_rsm_pass);
+    glBindVertexArray(mesh.vao_rsm_pass);
+    glDrawElementsInstanced(ptype, count, itype, 0, 4);
+}
+
 bool isObject(video::E_MATERIAL_TYPE type)
 {
 	if (type == irr_driver->getShader(ES_OBJECTPASS))
@@ -720,6 +738,7 @@ void initvaostate(GLMesh &mesh, GeometricMaterial GeoMat, ShadedMaterial ShadedM
         mesh.vao_first_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer,
             MeshShader::ObjectPass1Shader::attrib_position, MeshShader::ObjectPass1Shader::attrib_texcoord, -1, MeshShader::ObjectPass1Shader::attrib_normal, -1, -1, -1, mesh.Stride);
         mesh.vao_shadow_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer, MeshShader::ShadowShader::attrib_position, -1, -1, -1, -1, -1, -1, mesh.Stride);
+        mesh.vao_rsm_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer, MeshShader::RSMShader::attrib_position, MeshShader::RSMShader::attrib_texcoord, -1, MeshShader::RSMShader::attrib_normal, -1, -1, -1, mesh.Stride);
         break;
     case FPSM_ALPHA_REF_TEXTURE:
         mesh.vao_first_pass = createVAO(mesh.vertex_buffer, mesh.index_buffer,

@@ -307,6 +307,7 @@ private:
     bool                 m_mipviz;
     bool                 m_normals;
     bool                 m_ssaoviz;
+    bool                 m_rsm;
     bool                 m_shadowviz;
     bool                 m_lightviz;
     bool                 m_distortviz;
@@ -572,6 +573,7 @@ public:
         m_mipviz = false;
         m_normals = false;
         m_ssaoviz = false;
+        m_rsm = false;
         m_shadowviz = false;
         m_lightviz = false;
         m_distortviz = false;
@@ -592,6 +594,10 @@ public:
     bool getLightViz() { return m_lightviz; }
     // ------------------------------------------------------------------------
     bool getSSAOViz() { return m_ssaoviz; }
+    // ------------------------------------------------------------------------
+    void toggleRSM() { m_rsm = !m_rsm; }
+    // ------------------------------------------------------------------------
+    bool getRSM() { return m_rsm; }
     // ------------------------------------------------------------------------
     void toggleShadowViz() { m_shadowviz = !m_shadowviz; }
     // ------------------------------------------------------------------------
