@@ -282,6 +282,7 @@ void Shaders::loadShaders()
     FullScreenShader::ShadowedSunLightShader::init();
     FullScreenShader::ShadowedSunLightDebugShader::init();
     FullScreenShader::RadianceHintsConstructionShader::init();
+    FullScreenShader::RHDebug::init();
     FullScreenShader::MotionBlurShader::init();
     FullScreenShader::GodFadeShader::init();
     FullScreenShader::GodRayShader::init();
@@ -2264,6 +2265,27 @@ namespace FullScreenShader
         glUniform1i(uniform_ntex, TU_ntex);
         glUniform1i(uniform_dtex, TU_dtex);
         glUniform1i(uniform_slice, slice);
+        glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
+    }
+
+    GLuint RHDebug::Program;
+    GLuint RHDebug::uniform_extents;
+    GLuint RHDebug::uniform_VP;
+
+    void RHDebug::init()
+    {
+        Program = LoadProgram(
+            GL_VERTEX_SHADER, file_manager->getAsset("shaders/rhdebug.vert").c_str(),
+            GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/rhdebug.frag").c_str());
+        uniform_extents = glGetUniformLocation(Program, "extents");
+        uniform_VP = glGetUniformLocation(Program, "VP");
+        GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
+        glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
+    }
+
+    void RHDebug::setUniforms(const core::vector3df &extents, const core::matrix4 &VP)
+    {
+        glUniformMatrix4fv(uniform_VP, 1, GL_FALSE, VP.pointer());
         glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
     }
 

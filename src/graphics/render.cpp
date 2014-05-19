@@ -322,6 +322,14 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
     renderSkybox(camnode);
     PROFILER_POP_CPU_MARKER();
 
+    {
+        glEnable(GL_PROGRAM_POINT_SIZE);
+        glUseProgram(FullScreenShader::RHDebug::Program);
+        FullScreenShader::RHDebug::setUniforms(rh_extend, rh_matrix);
+        glDrawArrays(GL_POINTS, 0, 32 * 32 * 32);
+        glDisable(GL_PROGRAM_POINT_SIZE);
+    }
+
     PROFILER_PUSH_CPU_MARKER("- Glow", 0xFF, 0xFF, 0x00);
     // Render anything glowing.
     if (!m_mipviz && !m_wireframe && UserConfigParams::m_glow)
@@ -608,6 +616,8 @@ void IrrDriver::renderParticles()
 
 void IrrDriver::computeCameraMatrix(scene::ICameraSceneNode * const camnode, size_t width, size_t height)
 {
+    static int tick = 0;
+    tick++;
     m_scene_manager->drawAll(scene::ESNRP_CAMERA);
     irr_driver->setProjMatrix(irr_driver->getVideoDriver()->getTransform(video::ETS_PROJECTION));
     irr_driver->setViewMatrix(irr_driver->getVideoDriver()->getTransform(video::ETS_VIEW));
@@ -660,6 +670,12 @@ void IrrDriver::computeCameraMatrix(scene::ICameraSceneNode * const camnode, siz
         const float w = fabsf(extent.X);
         const float h = fabsf(extent.Y);
         float z = box.MaxEdge.Z;
+
+        if (i == 2 && !(tick % 1000))
+        {
+            rh_matrix = irr_driver->getViewMatrix();
+            rh_extend = core::vector3df(box.getExtent().X, box.getExtent().Y, box.getExtent().Z);
+        }
 
         // Snap to texels
         const float units_per_w = w / 1024;

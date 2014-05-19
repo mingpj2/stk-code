@@ -620,6 +620,16 @@ public:
     static void setUniforms(const core::vector3df &extents, unsigned slice, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex);
 };
 
+class RHDebug
+{
+public:
+    static GLuint Program;
+    static GLuint uniform_extents, uniform_VP;
+
+    static void init();
+    static void setUniforms(const core::vector3df &extents, const core::matrix4 &VP);
+};
+
 class Gaussian17TapHShader
 {
 public:
