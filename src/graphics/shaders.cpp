@@ -2270,6 +2270,9 @@ namespace FullScreenShader
 
     GLuint RHDebug::Program;
     GLuint RHDebug::uniform_extents;
+    GLuint RHDebug::uniform_SHR;
+    GLuint RHDebug::uniform_SHG;
+    GLuint RHDebug::uniform_SHB;
 
     void RHDebug::init()
     {
@@ -2277,13 +2280,19 @@ namespace FullScreenShader
             GL_VERTEX_SHADER, file_manager->getAsset("shaders/rhdebug.vert").c_str(),
             GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/rhdebug.frag").c_str());
         uniform_extents = glGetUniformLocation(Program, "extents");
+        uniform_SHR = glGetUniformLocation(Program, "SHR");
+        uniform_SHG = glGetUniformLocation(Program, "SHG");
+        uniform_SHB = glGetUniformLocation(Program, "SHB");
         GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
         glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
     }
 
-    void RHDebug::setUniforms(const core::vector3df &extents)
+    void RHDebug::setUniforms(const core::vector3df &extents, unsigned TU_SHR, unsigned TU_SHG, unsigned TU_SHB)
     {
         glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
+        glUniform1i(uniform_SHR, TU_SHR);
+        glUniform1i(uniform_SHG, TU_SHG);
+        glUniform1i(uniform_SHB, TU_SHB);
     }
 
     GLuint Gaussian17TapHShader::Program;
