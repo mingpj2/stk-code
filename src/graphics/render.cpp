@@ -329,7 +329,7 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
         glBindVertexArray(FullScreenShader::RadianceHintsConstructionShader::vao);
         setTexture(0, m_rtts->getRSM().getRTT()[0], GL_LINEAR, GL_LINEAR);
         setTexture(1, m_rtts->getRSM().getRTT()[1], GL_LINEAR, GL_LINEAR);
-        setTexture(0, m_rtts->getRSM().getDepthTexture(), GL_LINEAR, GL_LINEAR);
+        setTexture(2, m_rtts->getRSM().getDepthTexture(), GL_LINEAR, GL_LINEAR);
         for (unsigned i = 0; i < 32; i++) {
             FullScreenShader::RadianceHintsConstructionShader::setUniforms(rh_extend, i, 0, 1, 2);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
