@@ -336,6 +336,7 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
         }
 
         glEnable(GL_PROGRAM_POINT_SIZE);
+        m_rtts->getFBO(FBO_COLORS).Bind();
         glUseProgram(FullScreenShader::RHDebug::Program);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[0]);
