@@ -30,7 +30,7 @@
 // ----------------  INPUT ---------------------------------------------------------
 
 uniform int slice;              // The current volume slice
-uniform float R_wcs;            // Rmax: maximum sampling distance (in WCS units)
+uniform float R_wcs = 10.;            // Rmax: maximum sampling distance (in WCS units)
 uniform vec3 extents;          // Bounding box limits of the radiance hints volume
 uniform sampler2D dtex;         // RSM depth
 uniform sampler2D ctex;         // RSM vpl flux
@@ -131,9 +131,8 @@ void main(void)
     for (int i = 0; i < SAMPLES; i++)
     {
         // produce a new sample location on the RSM texture
-        vec3 rnd = rand_samples[i] / 2.;
-        vec2 uv = l_uv + vec2(rnd.x * cos(6.283*rnd.y), rnd.x * sin(6.283 * rnd.y));
-        uv /= screen;
+        vec3 rnd = rand_samples[i] * 0.01;
+        vec2 uv = l_uv + vec2(rnd.x * cos(6.283*rnd.y), rnd.y * sin(6.283 * rnd.x));
 
         // produce a new sampling location in the RH stratum
         vec3 p = RHcenter + (0.5 * rnd) * stratum;
@@ -145,11 +144,11 @@ void main(void)
         smp = pos_LCS.xyz / pos_LCS.w;
         smc = texture(ctex, uv).xyz;
         vec4 normal = texture(ntex, uv);
-        smn = vec3(2. * normal.xy - 1., normal.z);
+        smn = 2. * normal.xyz - 1.;
         smn = normalize(VectorLECS2WCS(normalize(smn)));
 
         // Normalize distance to RSM sample
-        dist = distance(p,smp)/R_wcs;
+        dist = distance(p,smp) / R_wcs;
         // Determine the incident direction.
         // Avoid very close samples (and numerical instability problems)
         vec3 dir = (dist <= 0.007) ? vec3(0.) : normalize(p-smp);
@@ -182,7 +181,7 @@ void main(void)
     // be used instead of the ADD operator for this data channel. In this case (e.g. MIN),
     // frag data[0] should contain: dist_min, r_max-dist_max, dist_ave (not used actually), 1.0 )
 
-    SHRed = vec4(0.);//SHr;
+    SHRed = SHr;
     SHGreen = SHg;
     SHBlue = SHb;
 }
