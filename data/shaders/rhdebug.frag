@@ -7,8 +7,8 @@ out vec4 FragColor;
 
 void main()
 {
-    float b = texture(SHR, uvw).x;
-    float g = texture(SHG, uvw).x;
-    float r = texture(SHB, uvw).x;
+    float b = texture(SHR, uvw).w;
+    float g = texture(SHG, uvw).w;
+    float r = texture(SHB, uvw).w;
     FragColor = vec4(r, g, b, 1.0);
 }
