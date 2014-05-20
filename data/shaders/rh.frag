@@ -105,7 +105,6 @@ const vec3 rand_samples[6] = {
 
 void main(void)
 {
-    gl_Layer = slice;
     // Determine the RH center
     int   gy = int(gl_FragCoord.y);
     int   gx = int(gl_FragCoord.x);
@@ -182,7 +181,7 @@ void main(void)
     // be used instead of the ADD operator for this data channel. In this case (e.g. MIN),
     // frag data[0] should contain: dist_min, r_max-dist_max, dist_ave (not used actually), 1.0 )
 
-    SHRed = SHr;
+    SHRed = vec4(0.);//SHr;
     SHGreen = SHg;
     SHBlue = SHb;
 }

@@ -2247,7 +2247,7 @@ namespace FullScreenShader
     void RadianceHintsConstructionShader::init()
     {
         Program = LoadProgram(
-            GL_VERTEX_SHADER, file_manager->getAsset("shaders/screenquad.vert").c_str(),
+            GL_VERTEX_SHADER, file_manager->getAsset("shaders/slicedscreenquad.vert").c_str(),
             GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/rh.frag").c_str());
         uniform_ctex = glGetUniformLocation(Program, "ctex");
         uniform_ntex = glGetUniformLocation(Program, "ntex");
