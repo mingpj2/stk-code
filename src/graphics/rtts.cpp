@@ -220,19 +220,19 @@ RTT::RTT(size_t width, size_t height)
         GLuint RH_Red, RH_Green, RH_Blue;
         glGenTextures(1, &RH_Red);
         glBindTexture(GL_TEXTURE_3D, RH_Red);
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 32, 32, 32, 0, GL_RGBA, GL_FLOAT, 0);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 128, 128, 128, 0, GL_RGBA, GL_FLOAT, 0);
         glGenTextures(1, &RH_Green);
         glBindTexture(GL_TEXTURE_3D, RH_Green);
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 32, 32, 32, 0, GL_RGBA, GL_FLOAT, 0);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 128, 128, 128, 0, GL_RGBA, GL_FLOAT, 0);
         glGenTextures(1, &RH_Blue);
         glBindTexture(GL_TEXTURE_3D, RH_Blue);
-        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 32, 32, 32, 0, GL_RGBA, GL_FLOAT, 0);
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, 128, 128, 128, 0, GL_RGBA, GL_FLOAT, 0);
 
         somevector.clear();
         somevector.push_back(RH_Red);
         somevector.push_back(RH_Green);
         somevector.push_back(RH_Blue);
-        m_RH_FBO = new FrameBuffer(somevector, 32, 32, true);
+        m_RH_FBO = new FrameBuffer(somevector, 128, 128, true);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

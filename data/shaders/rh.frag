@@ -53,9 +53,9 @@ out vec4 SHGreen;
 out vec4 SHBlue;
 
 #define SAMPLES 6
-#define DIM_X 32
-#define DIM_Y 32
-#define DIM_Z 32
+#define DIM_X 128
+#define DIM_Y 128
+#define DIM_Z 128
 
 // ----------------  SH functions -------------------------------------------------
 
@@ -106,9 +106,9 @@ const vec3 rand_samples[6] = {
 void main(void)
 {
     // Determine the RH center
-    int   gy = int(gl_FragCoord.y) - 16;
-    int   gx = int(gl_FragCoord.x) - 16;
-    int   gz = slice - 16;
+    int   gy = int(gl_FragCoord.y) - 64;
+    int   gx = int(gl_FragCoord.x) - 64;
+    int   gz = slice - 64;
 
     vec3  stratum = extents / vec3(DIM_X - 1., DIM_Y - 1., DIM_Z - 1.);
     vec3  RHcenter = vec3(gx, gy, gz) * stratum;

@@ -10,22 +10,22 @@ layout (std140) uniform MatrixesData
     vec2 screen;
 };
 
-#define DIM_X 32
-#define DIM_Y 32
-#define DIM_Z 32
+#define DIM_X 128
+#define DIM_Y 128
+#define DIM_Z 128
 
 out vec3 uvw;
 
 void main(void)
 {
     // Determine the RH center
-    float   gx = gl_VertexID & 31;
-    float   gy = (gl_VertexID >> 5) & 31;
-    float   gz = (gl_VertexID >> 10) & 31;
-    uvw = vec3(gx, gy, gz) / 32.;
-    gx -= 16.;
-    gy -= 16.;
-    gz -= 16.;
+    float   gx = gl_VertexID & 127;
+    float   gy = (gl_VertexID >> 5) & 127;
+    float   gz = (gl_VertexID >> 10) & 127;
+    uvw = vec3(gx, gy, gz) / 128.;
+    gx -= 64.;
+    gy -= 64.;
+    gz -= 64.;
     vec3  stratum = extents / vec3(DIM_X - 1., DIM_Y - 1., DIM_Z - 1.);
     gl_Position = ProjectionMatrix * ViewMatrix * vec4(vec3(gx, gy, gz) * stratum, 1.);
     gl_PointSize = 500. / gl_Position.w;
