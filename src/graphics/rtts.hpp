@@ -38,6 +38,7 @@ public:
     ~RTT();
 
     FrameBuffer &getShadowFBO() { return *m_shadow_FBO; }
+    FrameBuffer &getRH() { return *m_RH_FBO; }
     FrameBuffer &getRSM() { return *m_RSM; }
     unsigned getShadowDepthTex() const { return shadowDepthTex; }
 
