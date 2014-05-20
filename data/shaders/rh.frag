@@ -106,9 +106,10 @@ const vec3 rand_samples[6] = {
 void main(void)
 {
     // Determine the RH center
-    int   gy = int(gl_FragCoord.y);
-    int   gx = int(gl_FragCoord.x);
-    int   gz = slice;
+    int   gy = int(gl_FragCoord.y) - 16;
+    int   gx = int(gl_FragCoord.x) - 16;
+    int   gz = slice - 16;
+
     vec3  stratum = extents / vec3(DIM_X - 1., DIM_Y - 1., DIM_Z - 1.);
     vec3  RHcenter = vec3(gx, gy, gz) * stratum;
 

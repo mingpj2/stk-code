@@ -207,7 +207,7 @@ RTT::RTT(size_t width, size_t height)
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
         glGenTextures(1, &RSM_Normal);
         glBindTexture(GL_TEXTURE_2D, RSM_Normal);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1024, 1024, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1024, 1024, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
         glGenTextures(1, &RSM_Depth);
         glBindTexture(GL_TEXTURE_2D, RSM_Depth);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, 1024, 1024, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
