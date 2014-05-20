@@ -324,9 +324,26 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
 
     if (getRH())
     {
+        m_rtts->getRH().Bind();
+        glUseProgram(FullScreenShader::RadianceHintsConstructionShader::Program);
+        glBindVertexArray(FullScreenShader::RadianceHintsConstructionShader::vao);
+        setTexture(0, m_rtts->getRSM().getRTT()[0], GL_LINEAR, GL_LINEAR);
+        setTexture(1, m_rtts->getRSM().getRTT()[1], GL_LINEAR, GL_LINEAR);
+        setTexture(0, m_rtts->getRSM().getDepthTexture(), GL_LINEAR, GL_LINEAR);
+        for (unsigned i = 0; i < 32; i++) {
+            FullScreenShader::RadianceHintsConstructionShader::setUniforms(rh_extend, i, 0, 1, 2);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        }
+
         glEnable(GL_PROGRAM_POINT_SIZE);
         glUseProgram(FullScreenShader::RHDebug::Program);
-        FullScreenShader::RHDebug::setUniforms(rh_extend);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[1]);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[2]);
+        FullScreenShader::RHDebug::setUniforms(rh_extend, 0, 1, 2);
         glDrawArrays(GL_POINTS, 0, 32 * 32 * 32);
         glDisable(GL_PROGRAM_POINT_SIZE);
     }

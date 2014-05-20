@@ -47,7 +47,7 @@ layout (std140) uniform MatrixesData
     vec2 screen;
 };
 
-out vec4 VariousData;
+//out vec4 VariousData;
 out vec4 SHRed;
 out vec4 SHGreen;
 out vec4 SHBlue;
@@ -105,6 +105,7 @@ const vec3 rand_samples[6] = {
 
 void main(void)
 {
+    gl_Layer = slice;
     // Determine the RH center
     int   gy = int(gl_FragCoord.y);
     int   gx = int(gl_FragCoord.x);
@@ -175,7 +176,7 @@ void main(void)
     SHb /= float(3.14159*float(SAMPLES));
     dist_ave /= float(SAMPLES);
 
-    VariousData = vec4(dist_min, dist_max, dist_ave, 1.) / num_lights;
+//    VariousData = vec4(dist_min, dist_max, dist_ave, 1.) / num_lights;
     // distances must be divided by the number of lights this shader is run for, because
     // because they should not be accumulated. Ideally, the MIN/MAX frame buffer operator should
     // be used instead of the ADD operator for this data channel. In this case (e.g. MIN),
