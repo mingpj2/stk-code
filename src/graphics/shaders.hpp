@@ -630,6 +630,17 @@ public:
     static void setUniforms(const core::vector3df &extents, unsigned TU_SHR, unsigned TU_SHG, unsigned TU_SHB);
 };
 
+class GlobalIlluminationReconstructionShader
+{
+public:
+    static GLuint Program;
+    static GLuint uniform_ctex, uniform_ntex, uniform_dtex, uniform_slice, uniform_extents;
+    static GLuint vao;
+
+    static void init();
+    static void setUniforms(const core::vector3df &extents, unsigned slice, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex);
+};
+
 class Gaussian17TapHShader
 {
 public:
