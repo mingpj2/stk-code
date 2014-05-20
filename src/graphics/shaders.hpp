@@ -624,10 +624,10 @@ class RHDebug
 {
 public:
     static GLuint Program;
-    static GLuint uniform_extents, uniform_VP;
+    static GLuint uniform_extents;
 
     static void init();
-    static void setUniforms(const core::vector3df &extents, const core::matrix4 &VP);
+    static void setUniforms(const core::vector3df &extents);
 };
 
 class Gaussian17TapHShader

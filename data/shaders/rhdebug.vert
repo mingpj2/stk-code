@@ -1,5 +1,4 @@
 uniform vec3 extents;
-uniform mat4 VP;
 
 layout (std140) uniform MatrixesData
 {
@@ -25,6 +24,6 @@ void main(void)
     float   gz = (gl_VertexID >> 10) & 31;
     gz -= 16.;
     vec3  stratum = extents / vec3(DIM_X - 1., DIM_Y - 1., DIM_Z - 1.);
-    gl_Position = ProjectionMatrix * ViewMatrix * VP * vec4(vec3(gx, gy, gz) * stratum, 1.);
-    gl_PointSize = 10. / gl_Position.w;
+    gl_Position = ProjectionMatrix * ViewMatrix * vec4(vec3(gx, gy, gz) * stratum, 1.);
+    gl_PointSize = 500. / gl_Position.w;
 }

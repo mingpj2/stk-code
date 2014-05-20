@@ -2270,7 +2270,6 @@ namespace FullScreenShader
 
     GLuint RHDebug::Program;
     GLuint RHDebug::uniform_extents;
-    GLuint RHDebug::uniform_VP;
 
     void RHDebug::init()
     {
@@ -2278,14 +2277,12 @@ namespace FullScreenShader
             GL_VERTEX_SHADER, file_manager->getAsset("shaders/rhdebug.vert").c_str(),
             GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/rhdebug.frag").c_str());
         uniform_extents = glGetUniformLocation(Program, "extents");
-        uniform_VP = glGetUniformLocation(Program, "VP");
         GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
         glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
     }
 
-    void RHDebug::setUniforms(const core::vector3df &extents, const core::matrix4 &VP)
+    void RHDebug::setUniforms(const core::vector3df &extents)
     {
-        glUniformMatrix4fv(uniform_VP, 1, GL_FALSE, VP.pointer());
         glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
     }
 
