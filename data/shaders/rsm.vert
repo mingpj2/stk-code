@@ -28,8 +28,8 @@ out vec2 uv;
 void main(void)
 {
     mat4 ModelViewProjectionMatrix = ShadowViewProjMatrixes[2] * ModelMatrix;
-    mat4 TransposeInverseModelView = transpose(InverseModelMatrix * inverse(ShadowViewProjMatrixes[2]));
+    mat4 TransposeInverseModel = transpose(InverseModelMatrix);
     gl_Position = ModelViewProjectionMatrix * vec4(Position, 1.);
-    nor = Normal;
+    nor = (TransposeInverseModel * vec4(Normal, 0.)).xyz;
     uv = (TextureMatrix * vec4(Texcoord, 1., 1.)).xy;
 }
