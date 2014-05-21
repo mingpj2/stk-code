@@ -105,12 +105,7 @@ void main(void)
 
     // determine volume texture coordinate of current fragment location
     vec3 uvw = .5 + pos_wcs / extents;
-	float r = texture(SHR, uvw).w;
-	float g = texture(SHG, uvw).w;
-	float b = texture(SHB, uvw).w;
-	Diffuse = vec4(r, g, b, 1.);
-	Specular = vec4(0.);
-	return;
+
 
     float denom = 0.05;
 
@@ -137,7 +132,7 @@ void main(void)
     {
         vec3 sdir = normal_wcs*D[i].x + v_1*D[i].y + v_2*D[i].z;
         vec3 uvw_new = 0.5 * normal_wcs / SIZE + sdir / SIZE + uvw;
-		uvw_new = uvw;
+
 
         vec4 rh_shr = texture3D(SHR, uvw_new);
         vec4 rh_shg = texture3D(SHG, uvw_new);
