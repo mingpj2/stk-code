@@ -311,6 +311,7 @@ private:
     bool                 m_ssaoviz;
     bool                 m_rsm;
     bool                 m_rh;
+    bool                 m_gi;
     bool                 m_shadowviz;
     bool                 m_lightviz;
     bool                 m_distortviz;
@@ -578,6 +579,7 @@ public:
         m_ssaoviz = false;
         m_rsm = false;
         m_rh = false;
+        m_gi = false;
         m_shadowviz = false;
         m_lightviz = false;
         m_distortviz = false;
@@ -606,6 +608,10 @@ public:
     void toggleRH() { m_rh = !m_rh; }
     // ------------------------------------------------------------------------
     bool getRH() { return m_rh; }
+    // ------------------------------------------------------------------------
+    void toggleGI() { m_gi = !m_gi; }
+    // ------------------------------------------------------------------------
+    bool getGI() { return m_gi; }
     // ------------------------------------------------------------------------
     void toggleShadowViz() { m_shadowviz = !m_shadowviz; }
     // ------------------------------------------------------------------------

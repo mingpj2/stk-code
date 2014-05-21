@@ -324,23 +324,22 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
 
     if (getRH())
     {
-        m_rtts->getFBO(FBO_COMBINED_TMP1_TMP2).Bind();
-        glClearColor(0., 0., 0., 0.);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(FullScreenShader::GlobalIlluminationReconstructionShader::Program);
-        glBindVertexArray(FullScreenShader::GlobalIlluminationReconstructionShader::vao);
+        glEnable(GL_PROGRAM_POINT_SIZE);
+        m_rtts->getFBO(FBO_COLORS).Bind();
+        glUseProgram(FullScreenShader::RHDebug::Program);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[0]);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[1]);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[2]);
-        setTexture(3, irr_driver->getRenderTargetTexture(RTT_NORMAL_AND_DEPTH), GL_NEAREST, GL_NEAREST);
-        setTexture(4, irr_driver->getDepthStencilTexture(), GL_NEAREST, GL_NEAREST);
-        FullScreenShader::GlobalIlluminationReconstructionShader::setUniforms(rh_extend, 3, 4, 0, 1, 2);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        FullScreenShader::RHDebug::setUniforms(rh_extend, 0, 1, 2);
+        glDrawArrays(GL_POINTS, 0, 128 * 128 * 128);
+        glDisable(GL_PROGRAM_POINT_SIZE);
+    }
 
-        glEnable(GL_PROGRAM_POINT_SIZE);
+    if (getGI())
+    {
         m_rtts->getFBO(FBO_COLORS).Bind();
         glUseProgram(FullScreenShader::GlobalIlluminationReconstructionShader::Program);
         glBindVertexArray(FullScreenShader::GlobalIlluminationReconstructionShader::vao);
@@ -354,16 +353,6 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
         setTexture(4, irr_driver->getDepthStencilTexture(), GL_NEAREST, GL_NEAREST);
         FullScreenShader::GlobalIlluminationReconstructionShader::setUniforms(rh_extend, 3, 4, 0, 1, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-/*        glUseProgram(FullScreenShader::RHDebug::Program);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[0]);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[1]);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[2]);
-        FullScreenShader::RHDebug::setUniforms(rh_extend, 0, 1, 2);
-        glDrawArrays(GL_POINTS, 0, 128 * 128 * 128);*/
-        glDisable(GL_PROGRAM_POINT_SIZE);
     }
 
     PROFILER_PUSH_CPU_MARKER("- Glow", 0xFF, 0xFF, 0x00);
@@ -979,8 +968,8 @@ void IrrDriver::renderLights(scene::ICameraSceneNode * const camnode, float dt)
 
     renderPointLights(MIN2(lightnum, MAXLIGHT));
 
-//    if (SkyboxCubeMap)
-//        m_post_processing->renderDiffuseEnvMap(blueSHCoeff, greenSHCoeff, redSHCoeff);
+    if (SkyboxCubeMap)
+        m_post_processing->renderDiffuseEnvMap(blueSHCoeff, greenSHCoeff, redSHCoeff);
 //    gl_driver->extGlDrawBuffers(1, bufs);
 
 
