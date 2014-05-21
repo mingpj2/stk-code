@@ -324,17 +324,6 @@ void IrrDriver::renderScene(scene::ICameraSceneNode * const camnode, std::vector
 
     if (getRH())
     {
-        m_rtts->getRH().Bind();
-        glUseProgram(FullScreenShader::RadianceHintsConstructionShader::Program);
-        glBindVertexArray(FullScreenShader::RadianceHintsConstructionShader::vao);
-        setTexture(0, m_rtts->getRSM().getRTT()[0], GL_LINEAR, GL_LINEAR);
-        setTexture(1, m_rtts->getRSM().getRTT()[1], GL_LINEAR, GL_LINEAR);
-        setTexture(2, m_rtts->getRSM().getDepthTexture(), GL_LINEAR, GL_LINEAR);
-        for (unsigned i = 0; i < 128; i++) {
-            FullScreenShader::RadianceHintsConstructionShader::setUniforms(rh_extend, i, 0, 1, 2);
-            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        }
-
         glEnable(GL_PROGRAM_POINT_SIZE);
         m_rtts->getFBO(FBO_COLORS).Bind();
         glUseProgram(FullScreenShader::RHDebug::Program);
@@ -949,6 +938,25 @@ void IrrDriver::renderLights(scene::ICameraSceneNode * const camnode, float dt)
     lightnum++;
 
     renderPointLights(MIN2(lightnum, MAXLIGHT));
+
+    //RH
+    m_rtts->getRH().Bind();
+    glUseProgram(FullScreenShader::RadianceHintsConstructionShader::Program);
+    glBindVertexArray(FullScreenShader::RadianceHintsConstructionShader::vao);
+    setTexture(0, m_rtts->getRSM().getRTT()[0], GL_LINEAR, GL_LINEAR);
+    setTexture(1, m_rtts->getRSM().getRTT()[1], GL_LINEAR, GL_LINEAR);
+    setTexture(2, m_rtts->getRSM().getDepthTexture(), GL_LINEAR, GL_LINEAR);
+    for (unsigned i = 0; i < 128; i++) {
+        FullScreenShader::RadianceHintsConstructionShader::setUniforms(rh_extend, i, 0, 1, 2);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+    m_rtts->getFBO(FBO_COMBINED_TMP1_TMP2).Bind();
+    glUseProgram(FullScreenShader::GlobalIlluminationReconstructionShader::Program);
+    glBindVertexArray(FullScreenShader::GlobalIlluminationReconstructionShader::vao);
+    FullScreenShader::GlobalIlluminationReconstructionShader::setUniforms(rh_extend, 0, 1, 2);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
     if (SkyboxCubeMap)
         m_post_processing->renderDiffuseEnvMap(blueSHCoeff, greenSHCoeff, redSHCoeff);
 //    gl_driver->extGlDrawBuffers(1, bufs);

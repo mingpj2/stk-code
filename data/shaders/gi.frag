@@ -27,17 +27,17 @@
 
 // ----------------  INPUT ---------------------------------------------------------
 
-uniform sampler2D ntex; // Deferred renderer normal and depth buffers:
-uniform sampler2D dtex;   //
+// Deferred renderer normal and depth buffers:
+uniform sampler2D ntex;
+uniform sampler2D dtex;
 
-uniform sampler3D Noise;      // A pre-computed 3D noise texture (32X32X32). Value range (r,g,b): [0,1]
-uniform mat4  MVP;            // Final modelview and projection camera matrix: CSS -> WCS    
-uniform mat4  MVP_inv;        // Final inverse modelview and projection camera matrix: CSS -> WCS 
-uniform mat4  P_inv;          // Final inverse camera projection matrix: ECS -> CSS
-uniform float R_wcs;          // Rmax: maximum sampling distance (in WCS units)
-uniform float factor;         // GI contribution multiplier 
-uniform vec3 bbox_min;        // Bounding box limits of the radiance hints volume
-uniform vec3 bbox_max;        // 
+uniform sampler3D SHR;
+uniform sampler3D SHG;
+uniform sampler3D SHB;
+
+uniform float R_wcs = 10.;          // Rmax: maximum sampling distance (in WCS units)
+uniform float factor = 1.;         // GI contribution multiplier 
+uniform vec3 extents;          // Bounding box limits of the radiance hints volume
 uniform sampler3D points[4];  // Radiance Hint buffers:
                               // points[0]: dist_min, dist_max, dist_ave, 1.0
                               // points[1]: Lr(1,1) Lr(1,-1) Lr(1,0) Lr(0,0) 
@@ -75,64 +75,52 @@ vec3 SH2RGB (in vec4 sh_r, in vec4 sh_g, in vec4 sh_b, in vec3 dir)
 
 vec3 VectorECS2WCS(in vec3 pos)
 {
-    vec4 vector_WCS = transpose(P_inv*MVP)*vec4(pos,0);
+    vec4 vector_WCS = transpose(ViewMatrix) * vec4(pos,0);
     return vector_WCS.xyz;
-}
-
-vec3 PointCSS2WCS(in vec3 pos)
-{
-    vec4 p_wcs = MVP_inv*vec4(pos,1.0);
-    return p_wcs.xyz/p_wcs.w;
 }
 
 // ----------------  Main shader function -----------------------------------------
 
 in vec2 uv;
+out vec4 Diffuse;
+out vec4 Specular;
+
+vec3 DecodeNormal(vec2 n);
+vec4 getPosFromUVDepth(vec3 uvDepth, mat4 InverseProjectionMatrix);
 
 void main(void)
-{ 
+{
     // Accumulated global illumination, initialized at (0,0,0)
-    vec3 GI = vec3(0.0,0.0,0.0);
-    
+    vec3 GI = vec3(0.);
+
     // Blending factor for current GI estimation frame
-    // If blending < 1, current result is blended with previous GI values (temporal smoothing) 
+    // If blending < 1, current result is blended with previous GI values (temporal smoothing)
     float blending = 0.8;
 
+    float depth = texture2D(dtex, uv).x;
     // Discard background fragments
-    float depth = texture2D(dtex,gl_TexCoord[0].st).r;
-    if (depth==1.0)
-    {
-        gl_FragColor=vec4(0.0,0.0,0.0,1.0);//discard;
-        return;
-    }
+    if (depth==1.0) discard;
 
-    vec3 extents = bbox_max-bbox_min;
     ivec3 sz = textureSize(points[0],0);
 
     // convert fragment position and normal to WCS
-    vec3 pos_css = vec3(2. * uv - 1., 2 * depth - 1.);
-    vec3 pos_wcs = PointCSS2WCS(pos_css);
-    vec4 ntex = texture2D(ntex, uv);
-    vec3 normal_ecs = ntex.xyz;
-    normal_ecs.x = normal_ecs.x * 2.0 - 1.0;
-    normal_ecs.y = normal_ecs.y * 2.0 - 1.0;
-    normal_ecs = normalize(normal_ecs);
+    vec3 pos_wcs = (InverseViewMatrix * getPosFromUVDepth(vec3(uv, depth), InverseProjectionMatrix)).xyz;
+    vec3 normal_ecs = normalize(DecodeNormal(2. * texture(ntex, uv).xy - 1.));
     vec3 normal_wcs = normalize(VectorECS2WCS(normal_ecs));
 
     // determine volume texture coordinate of current fragment location
-    vec3 uvw = (pos_wcs-bbox_min)/extents;
-    
+    vec3 uvw = pos_wcs / extents;
+
     float denom = 0.05;
 
     // Sample the RH volume at 4 locations, one directly above the shaded point,
     // three on a ring 80degs away from the normal direction. All samples are
     // moved away from the shaded point to avoid sampling RHs behind the surface.
-    //    
-    // You can introduce a random rotation of the samples around the normal:
-    vec3 rnd = vec3(0,0,0); //texture3D(Noise,25*uvw).xyz - vec3(0.5,0.5,0.5);
+    // You can introduce a random rotation of the samples around the normal
+    vec3 rnd = vec3(0,0,0);
 
-    // Generate the sample locations;
-    vec3 v_rand = vec3(0.5, 0.5, 0.5);
+    // Generate the sample locations
+    vec3 v_rand = vec3(0.5);
     vec3 v_1 = normalize(cross(normal_wcs,v_rand));
     vec3 v_2 = cross(normal_wcs,v_1);
     vec3 D[4];
@@ -153,7 +141,7 @@ void main(void)
         vec4 rh_shg    = texture3D(points[2],uvw_new);
         vec4 rh_shb    = texture3D(points[3],uvw_new);
 
-        vec3 rh_pos    = bbox_min+extents*uvw_new;
+        vec3 rh_pos    = extents * uvw_new;
         vec3 path = rh_pos - pos_wcs;
         float dist = length(path);
         float rel_dist = dist/R_wcs;
@@ -166,5 +154,6 @@ void main(void)
     GI *= factor / denom;
 
     // Note: tone mapping is normally required on the final GI buffer
-    gl_FragColor = vec4(GI,blending);
+    Diffuse = vec4(GI,blending);
+    Specular = vec4(0.);
 }

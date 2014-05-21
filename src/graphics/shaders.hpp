@@ -634,11 +634,11 @@ class GlobalIlluminationReconstructionShader
 {
 public:
     static GLuint Program;
-    static GLuint uniform_ctex, uniform_ntex, uniform_dtex, uniform_slice, uniform_extents;
+    static GLuint uniform_ntex, uniform_dtex, uniform_extents, uniform_SHR, uniform_SHG, uniform_SHB;
     static GLuint vao;
 
     static void init();
-    static void setUniforms(const core::vector3df &extents, unsigned slice, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex);
+    static void setUniforms(const core::vector3df &extents, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex);
 };
 
 class Gaussian17TapHShader
