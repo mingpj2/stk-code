@@ -104,7 +104,13 @@ void main(void)
     vec3 normal_wcs = normalize(VectorECS2WCS(normal_ecs));
 
     // determine volume texture coordinate of current fragment location
-    vec3 uvw = pos_wcs / extents;
+    vec3 uvw = .5 + pos_wcs / extents;
+	float r = texture(SHR, uvw).w;
+	float g = texture(SHG, uvw).w;
+	float b = texture(SHB, uvw).w;
+	Diffuse = vec4(r, g, b, 1.);
+	Specular = vec4(0.);
+	return;
 
     float denom = 0.05;
 
@@ -131,6 +137,7 @@ void main(void)
     {
         vec3 sdir = normal_wcs*D[i].x + v_1*D[i].y + v_2*D[i].z;
         vec3 uvw_new = 0.5 * normal_wcs / SIZE + sdir / SIZE + uvw;
+		uvw_new = uvw;
 
         vec4 rh_shr = texture3D(SHR, uvw_new);
         vec4 rh_shg = texture3D(SHG, uvw_new);
@@ -142,13 +149,13 @@ void main(void)
         float rel_dist = dist / R_wcs;
         dist /= length(extents / SIZE);
         path = normalize(path);
-        float contrib = dist > 0.005 ? 1. : 0.;
+        float contrib = 1.;//dist > 0.005 ? 1. : 0.;
         GI += contrib * SH2RGB (rh_shr, rh_shg, rh_shb, -normal_wcs);
         denom += contrib;
     }
-    GI *= factor / denom;
+    GI *= factor;// / denom;
 
     // Note: tone mapping is normally required on the final GI buffer
-    Diffuse = vec4(GI,blending);
+    Diffuse = max(vec4(GI,blending), vec4(0.));
     Specular = vec4(0.);
 }

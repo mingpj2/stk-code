@@ -48,9 +48,9 @@ layout (std140) uniform MatrixesData
 };
 
 //out vec4 VariousData;
-out vec4 SHRed;
-out vec4 SHGreen;
-out vec4 SHBlue;
+layout (location = 0) out vec4 SHRed;
+layout (location = 1) out vec4 SHGreen;
+layout (location = 2) out vec4 SHBlue;
 
 #define SAMPLES 6
 #define DIM_X 128
