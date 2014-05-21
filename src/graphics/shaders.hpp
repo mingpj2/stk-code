@@ -638,7 +638,7 @@ public:
     static GLuint vao;
 
     static void init();
-    static void setUniforms(const core::vector3df &extents, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex);
+    static void setUniforms(const core::vector3df &extents, unsigned TU_ntex, unsigned TU_dtex, unsigned TU_SHR, unsigned TU_SHG, unsigned TU_SHB);
 };
 
 class Gaussian17TapHShader

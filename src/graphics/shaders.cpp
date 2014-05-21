@@ -2299,6 +2299,9 @@ namespace FullScreenShader
     GLuint GlobalIlluminationReconstructionShader::Program;
     GLuint GlobalIlluminationReconstructionShader::uniform_ntex;
     GLuint GlobalIlluminationReconstructionShader::uniform_dtex;
+    GLuint GlobalIlluminationReconstructionShader::uniform_SHR;
+    GLuint GlobalIlluminationReconstructionShader::uniform_SHG;
+    GLuint GlobalIlluminationReconstructionShader::uniform_SHB;
     GLuint GlobalIlluminationReconstructionShader::uniform_extents;
     GLuint GlobalIlluminationReconstructionShader::vao;
 
@@ -2311,16 +2314,22 @@ namespace FullScreenShader
             GL_FRAGMENT_SHADER, file_manager->getAsset("shaders/gi.frag").c_str());
         uniform_ntex = glGetUniformLocation(Program, "ntex");
         uniform_dtex = glGetUniformLocation(Program, "dtex");
+        uniform_SHR = glGetUniformLocation(Program, "SHR");
+        uniform_SHG = glGetUniformLocation(Program, "SHG");
+        uniform_SHB = glGetUniformLocation(Program, "SHB");
         uniform_extents = glGetUniformLocation(Program, "extents");
         vao = createVAO(Program);
         GLuint uniform_ViewProjectionMatrixesUBO = glGetUniformBlockIndex(Program, "MatrixesData");
         glUniformBlockBinding(Program, uniform_ViewProjectionMatrixesUBO, 0);
     }
 
-    void GlobalIlluminationReconstructionShader::setUniforms(const core::vector3df &extents, unsigned TU_ctex, unsigned TU_ntex, unsigned TU_dtex)
+    void GlobalIlluminationReconstructionShader::setUniforms(const core::vector3df &extents, unsigned TU_ntex, unsigned TU_dtex, unsigned TU_SHR, unsigned TU_SHG, unsigned TU_SHB)
     {
         glUniform1i(uniform_ntex, TU_ntex);
         glUniform1i(uniform_dtex, TU_dtex);
+        glUniform1i(uniform_SHR, TU_SHR);
+        glUniform1i(uniform_SHG, TU_SHG);
+        glUniform1i(uniform_SHB, TU_SHB);
         glUniform3f(uniform_extents, extents.X, extents.Y, extents.Z);
     }
 

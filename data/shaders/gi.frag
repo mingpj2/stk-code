@@ -38,11 +38,6 @@ uniform sampler3D SHB;
 uniform float R_wcs = 10.;          // Rmax: maximum sampling distance (in WCS units)
 uniform float factor = 1.;         // GI contribution multiplier 
 uniform vec3 extents;          // Bounding box limits of the radiance hints volume
-uniform sampler3D points[4];  // Radiance Hint buffers:
-                              // points[0]: dist_min, dist_max, dist_ave, 1.0
-                              // points[1]: Lr(1,1) Lr(1,-1) Lr(1,0) Lr(0,0) 
-                              // points[2]: Lg(1,1) Lg(1,-1) Lg(1,0) Lg(0,0) 
-                              // points[3]: Lb(1,1) Lb(1,-1) Lb(1,0) Lb(0,0) 
 
 layout (std140) uniform MatrixesData
 {
@@ -88,6 +83,8 @@ out vec4 Specular;
 vec3 DecodeNormal(vec2 n);
 vec4 getPosFromUVDepth(vec3 uvDepth, mat4 InverseProjectionMatrix);
 
+#define SIZE 128
+
 void main(void)
 {
     // Accumulated global illumination, initialized at (0,0,0)
@@ -100,8 +97,6 @@ void main(void)
     float depth = texture2D(dtex, uv).x;
     // Discard background fragments
     if (depth==1.0) discard;
-
-    ivec3 sz = textureSize(points[0],0);
 
     // convert fragment position and normal to WCS
     vec3 pos_wcs = (InverseViewMatrix * getPosFromUVDepth(vec3(uv, depth), InverseProjectionMatrix)).xyz;
@@ -135,21 +130,21 @@ void main(void)
     for (i=0; i<4; i++)
     {
         vec3 sdir = normal_wcs*D[i].x + v_1*D[i].y + v_2*D[i].z;
-        vec3 uvw_new = 0.5*normal_wcs/sz+ sdir/sz + uvw;
+        vec3 uvw_new = 0.5 * normal_wcs / SIZE + sdir / SIZE + uvw;
 
-        vec4 rh_shr    = texture3D(points[1],uvw_new);
-        vec4 rh_shg    = texture3D(points[2],uvw_new);
-        vec4 rh_shb    = texture3D(points[3],uvw_new);
+        vec4 rh_shr = texture3D(SHR, uvw_new);
+        vec4 rh_shg = texture3D(SHG, uvw_new);
+        vec4 rh_shb = texture3D(SHB, uvw_new);
 
-        vec3 rh_pos    = extents * uvw_new;
+        vec3 rh_pos = extents * uvw_new;
         vec3 path = rh_pos - pos_wcs;
         float dist = length(path);
-        float rel_dist = dist/R_wcs;
-        dist/=length(extents/sz);
+        float rel_dist = dist / R_wcs;
+        dist /= length(extents / SIZE);
         path = normalize(path);
-        float contrib = dist>0.005?1.0:0.0;
-        GI+= contrib * SH2RGB (rh_shr, rh_shg, rh_shb, -normal_wcs);
-        denom+=contrib;
+        float contrib = dist > 0.005 ? 1. : 0.;
+        GI += contrib * SH2RGB (rh_shr, rh_shg, rh_shb, -normal_wcs);
+        denom += contrib;
     }
     GI *= factor / denom;
 

@@ -956,7 +956,15 @@ void IrrDriver::renderLights(scene::ICameraSceneNode * const camnode, float dt)
     m_rtts->getFBO(FBO_COMBINED_TMP1_TMP2).Bind();
     glUseProgram(FullScreenShader::GlobalIlluminationReconstructionShader::Program);
     glBindVertexArray(FullScreenShader::GlobalIlluminationReconstructionShader::vao);
-    FullScreenShader::GlobalIlluminationReconstructionShader::setUniforms(rh_extend, 0, 1, 2);
+    setTexture(0, irr_driver->getRenderTargetTexture(RTT_NORMAL_AND_DEPTH), GL_NEAREST, GL_NEAREST);
+    setTexture(1, irr_driver->getDepthStencilTexture(), GL_NEAREST, GL_NEAREST);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[0]);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[1]);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_3D, m_rtts->getRH().getRTT()[2]);
+    FullScreenShader::GlobalIlluminationReconstructionShader::setUniforms(rh_extend, 0, 1, 2, 3, 4);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     if (SkyboxCubeMap)
