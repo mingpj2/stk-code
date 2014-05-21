@@ -940,6 +940,7 @@ void IrrDriver::renderLights(scene::ICameraSceneNode * const camnode, float dt)
     renderPointLights(MIN2(lightnum, MAXLIGHT));
 
     //RH
+    glDisable(GL_BLEND);
     m_rtts->getRH().Bind();
     glUseProgram(FullScreenShader::RadianceHintsConstructionShader::Program);
     glBindVertexArray(FullScreenShader::RadianceHintsConstructionShader::vao);
@@ -950,6 +951,7 @@ void IrrDriver::renderLights(scene::ICameraSceneNode * const camnode, float dt)
         FullScreenShader::RadianceHintsConstructionShader::setUniforms(rh_extend, i, 0, 1, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
+    glEnable(GL_BLEND);
 
     m_rtts->getFBO(FBO_COMBINED_TMP1_TMP2).Bind();
     glUseProgram(FullScreenShader::GlobalIlluminationReconstructionShader::Program);
