@@ -3,6 +3,9 @@
 # Configuration manual:
 # http://docs.travis-ci.com/user/build-configuration/
 #
+env:
+  global:
+    - secure: "AseGHp5lv8CmJaNAqttSLMVhNWUHdJKAEZg8/Ifwl3TOTwJgdz2KCPMp8CqP10o14A0wJwGQ9CY1hwHv/HmfwbWSChjnnDIbk6rZ4NMbfHhY6PduDfuKtcu0AxXO7co9/LB2C2J/6/bfW2q91OIfLvYY+qM+XrRwzpu3f58QWOc="
 language: cpp
 compiler:
   - gcc
@@ -31,12 +34,16 @@ script:
   - date
 deploy:
   provider: releases
-  ##api-key: "GITHUB OAUTH TOKEN"
+  api-key: $GITHUG_TOKEN
   file: build/bin/supertuxkart
   skip_cleanup: true
   on:
+    #tags - when set to true, Travis CI only deploys on tagged builds
     ##tags: true
+    #all_branches - when set to true, trigger release from any branch if passing
     all_branches: true
+    #branch - branch or list of branches to release from if passing
+    #repo - only trigger a build for the given repository, to play nice with forks
 notifications:
   ##irc:
     ##channels:
