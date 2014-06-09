@@ -35,7 +35,7 @@ deploy:
   file: build/bin/supertuxkart
   skip_cleanup: true
   on:
-    tags: true
+    ##tags: true
     all_branches: true
 notifications:
   ##irc:
