@@ -27,8 +27,16 @@ script:
   - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
   - make VERBOSE=1 -j 4 
   - pwd
-  - ls -l build
+  - ls -l bin
   - date
+##deploy:
+  ##provider: releases
+  ##api-key: "GITHUB OAUTH TOKEN"
+  ##file: build/bin/supertuxkart
+  ##skip_cleanup: true
+  ##on:
+  ##  tags: true
+  ##  all_branches: true
 notifications:
   ##irc:
     ##channels:
