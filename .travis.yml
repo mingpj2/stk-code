@@ -28,11 +28,14 @@ script:
   #  Build commands
   - mkdir build
   - cd build
-  ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
-  ##- cmake .. -DCHECK_ASSETS=off
   - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
   - make VERBOSE=1 -j 4 
   - pwd
+  - ls -l bin
+  - date
+  - objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
+  - strip bin/supertuxkart
+  - objcopy --add-gnu-debuglink=bin/supertuxkart.dbgsymbols bin/supertuxkart
   - ls -l bin
   - date
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
