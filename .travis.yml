@@ -35,7 +35,9 @@ script:
   - date
   - objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
   - strip bin/supertuxkart
-  - objcopy --add-gnu-debuglink=supertuxkart.dbgsymbols bin/supertuxkart
+  - mkdir bindbg
+  - cp bin/supertuxkart.dbgsymbols bindbg
+  - objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
   - ls -l bin
   - date
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
