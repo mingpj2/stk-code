@@ -28,8 +28,10 @@ script:
   #  Build commands
   - mkdir build
   - cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
-  - make VERBOSE=1 -j 4 
+  ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
+  ##- make VERBOSE=1 -j 4 
+  - cmake ..  -DCHECK_ASSETS=off
+  - make VERBOSE=1  
   - pwd
   - ls -l bin
   - date
