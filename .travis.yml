@@ -52,7 +52,7 @@ script:
   - objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
   - ls -l bin
   - date
-  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
+  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
   - date
   
   - echo
@@ -66,7 +66,7 @@ script:
   - ls -l build-trusty64
   - ls -l build-trusty64/bin
   - date
-  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/supertuxkart-trusty64" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
+  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/supertuxkart-trusty64" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
   - date
   - echo 'Build chrooted trusty ubunty 64 version ... done. '
   - echo
