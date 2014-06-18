@@ -13,7 +13,7 @@ all:
 	date
 	
 	# setup schroot.conf
-	##- cat /etc/schroot/schroot.conf
+	cat /etc/schroot/schroot.conf
 	####sudo bash $TRAVIS_BUILD_DIR/linux-conf-command1
 	####cat linux-conf-data1 >> /etc/schroot/schroot.conf
 	sudo bash -c "echo '[trusty]'                   >> /etc/schroot/schroot.conf"
@@ -23,12 +23,12 @@ all:
 	sudo bash -c "echo 'groups=travis'              >> /etc/schroot/schroot.conf"
 	sudo bash -c "echo 'root-groups=root'           >> /etc/schroot/schroot.conf"
 
-	##- cat /etc/schroot/schroot.conf
+	cat /etc/schroot/schroot.conf
 	mkdir /home/travis/srv
 	##- ls -l /home/travis/srv
 	
 	# Install chroot system -- configure debootstrap
-	##- ls -ld /usr/share/debootstrap/scripts/*
+	ls -ld /usr/share/debootstrap/scripts/*
 	####  - bash $TRAVIS_BUILD_DIR/linux-conf-command3
 	grep 'Essential' /usr/share/debootstrap/scripts/gutsy
 	sudo sed -e 's/Essential: yes)\"/Essential: yes) sudo cmake libogg-dev libvorbis-dev  libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev libgl1-mesa-dev libglu1-mesa-dev \"/' -i /usr/share/debootstrap/scripts/gutsy
