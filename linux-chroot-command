@@ -14,6 +14,9 @@ cd ${DIR}
 echo pwd
 pwd
 
+echo 'ls -l /chroot*'
+ls -l /chroot*
+
 echo 'ls -l'
 ls -l
 
@@ -26,8 +29,11 @@ pwd
   date
   ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
   cmake .. -DCHECK_ASSETS=off
-  make VERBOSE=1 -j 4
+  ##make VERBOSE=1 -j 4
+  make -j 4
+  echo pwd
   pwd
+  echo 'ls -l bin'
   ls -l bin
   date
   objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
@@ -36,8 +42,15 @@ pwd
   cp bin/supertuxkart.dbgsymbols bindbg
   objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
   mv bin/supertuxkart bin/supertuxkart-trusty64
+  echo 'ls -l bin'
   ls -l bin
   date
+
+echo pwd
+pwd
+
+echo 'ls -l /chroot*'
+ls -l /chroot*
 
 echo 'ls -l'
 ls -l
