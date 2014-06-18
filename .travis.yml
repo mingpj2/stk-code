@@ -17,6 +17,17 @@ compiler:
 before_install:
   # Update repos
   - sudo apt-get update -qq
+  
+  - echo
+  - echo 'Build chrooted trusty ubunty 64 version ... '
+  - date
+  - pwd
+  - make -C $TRAVIS_BUILD_DIR -f $TRAVIS_BUILD_DIR/linux-ubt64trusty-mk
+  - pwd
+  - date
+  - echo 'Build chrooted trusty ubunty 64 version ... done. '
+  - echo
+  
   # Install dependencies
   - sudo apt-get install build-essential cmake libogg-dev libvorbis-dev libopenal-dev libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev
   # Install mesa from an other repo (a newer version is required)
@@ -49,7 +60,7 @@ script:
   - date
   - cd $TRAVIS_BUILD_DIR
   - pwd
-  - make -C $TRAVIS_BUILD_DIR -f $TRAVIS_BUILD_DIR/linux-ubt64trusty-mk
+  #- make -C $TRAVIS_BUILD_DIR -f $TRAVIS_BUILD_DIR/linux-ubt64trusty-mk
   - pwd
   - ls -l
   - ls -l build-trusty64
