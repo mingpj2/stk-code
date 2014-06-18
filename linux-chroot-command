@@ -28,13 +28,16 @@ pwd
 
   date
   ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
-  cmake .. -DCHECK_ASSETS=off
+  cmake .. -DCHECK_ASSETS=off -DCMAKE_INSTALL_PREFIX=../stkopt
   ##make VERBOSE=1 -j 4
   make -j 4
+  make install
   echo pwd
   pwd
   echo 'ls -l bin'
   ls -l bin
+  echo 'ls -l ../stkopt'
+  ls -l ../stkopt
   date
   objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
   strip bin/supertuxkart
