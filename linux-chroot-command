@@ -38,6 +38,8 @@ pwd
   ls -l bin
   echo 'ls -l ../stkopt'
   ls -l ../stkopt
+  tar zcf stkopt.tgz ../stkopt/
+  mv stkopt.tgz bin
   date
   objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
   strip bin/supertuxkart
