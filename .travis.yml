@@ -43,6 +43,23 @@ script:
   - date
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
   - date
+  
+  - echo
+  - echo 'Build chrooted trusty ubunty 64 version ... '
+  - date
+  - cd $TRAVIS_BUILD_DIR
+  - pwd
+  - make -C $TRAVIS_BUILD_DIR -f $TRAVIS_BUILD_DIR/linux-ubt64trusty-mk
+  - pwd
+  - ls -l
+  - ls -l build-trusty64
+  - ls -l build-trusty64/bin
+  - date
+  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/supertuxkart-trusty64" https://ming-openbox.rhcloud.com/phpsrc/upload_file.php
+  - date
+  - echo 'Build chrooted trusty ubunty 64 version ... done. '
+  - echo
+
 ##deploy:
 ##  provider: releases
 ##  api-key: $GITHUB_TOKEN
