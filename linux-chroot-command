@@ -1,0 +1,54 @@
+#!/bin/bash
+#linux-chroot-command
+
+echo
+echo '======================================================'
+echo 'inside linux-chroot-command begin...'
+echo
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "cd ${DIR}"
+cd ${DIR}
+
+echo pwd
+pwd
+
+echo 'ls -l'
+ls -l
+
+  mkdir build-trusty64
+  cd build-trusty64
+
+echo pwd
+pwd
+
+  date
+  ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
+  cmake .. -DCHECK_ASSETS=off
+  make VERBOSE=1 -j 4
+  pwd
+  ls -l bin
+  date
+  objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
+  strip bin/supertuxkart
+  mkdir bindbg
+  cp bin/supertuxkart.dbgsymbols bindbg
+  objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
+  mv bin/supertuxkart bin/supertuxkart-trusty64
+  ls -l bin
+  date
+
+echo 'ls -l'
+ls -l
+
+echo
+echo "TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR"
+echo "TRAVIS_BRANCH $TRAVIS_BRANCH "
+echo
+
+echo
+echo 'inside linux-chroot-command end.'
+echo '======================================================'
+echo
+
