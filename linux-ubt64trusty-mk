@@ -1,0 +1,90 @@
+#
+# linux-ubt64trusty-mk
+# makefile derived from .travis.yml
+#
+
+.phony: all
+
+all:
+	pwd
+	# Install chroot system -- chroot debootstrap packages
+	date
+	sudo apt-get install dchroot schroot debootstrap
+	date
+	
+	# setup schroot.conf
+	##- cat /etc/schroot/schroot.conf
+	####sudo bash $TRAVIS_BUILD_DIR/linux-conf-command1
+	####cat linux-conf-data1 >> /etc/schroot/schroot.conf
+	sudo bash -c "echo '[trusty]'                   >> /etc/schroot/schroot.conf"
+	sudo bash -c "echo 'description=Ubuntu Trusty'  >> /etc/schroot/schroot.conf"
+	sudo bash -c "echo 'directory=/home/travis/srv' >> /etc/schroot/schroot.conf"
+	sudo bash -c "echo 'users=travis'               >> /etc/schroot/schroot.conf"
+	sudo bash -c "echo 'groups=travis'              >> /etc/schroot/schroot.conf"
+	sudo bash -c "echo 'root-groups=root'           >> /etc/schroot/schroot.conf"
+
+	##- cat /etc/schroot/schroot.conf
+	mkdir /home/travis/srv
+	##- ls -l /home/travis/srv
+	
+	# Install chroot system -- configure debootstrap
+	##- ls -ld /usr/share/debootstrap/scripts/*
+	####  - bash $TRAVIS_BUILD_DIR/linux-conf-command3
+	grep 'Essential' /usr/share/debootstrap/scripts/gutsy
+	sudo sed -e 's/Essential: yes)\"/Essential: yes) sudo cmake libogg-dev libvorbis-dev  libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev libgl1-mesa-dev libglu1-mesa-dev \"/' -i /usr/share/debootstrap/scripts/gutsy
+	grep 'Essential' /usr/share/debootstrap/scripts/gutsy
+	
+	# Install chroot system -- debootstrap install the chroot 
+	sudo debootstrap --variant=buildd --arch amd64 trusty /home/travis/srv
+	sudo touch        /home/travis/srv/chroot-in-srv
+	sudo mkdir -p     /home/travis/srv/home/travis
+	sudo chown travis /home/travis/srv/home/travis
+	sudo chgrp travis /home/travis/srv/home/travis
+	ls -ld /home/travis/srv/*
+	##- sudo grep travis /etc/sudoers
+	##- sudo cat  /etc/sudoers
+	##- sudo cat  /home/travis/srv/etc/sudoers
+	
+	####  - sudo bash $TRAVIS_BUILD_DIR/linux-conf-command2 
+	sudo bash -c "echo 'travis ALL=(ALL) NOPASSWD:ALL' >> /home/travis/srv/etc/sudoers"
+	sudo cp /etc/resolv.conf /home/travis/srv/etc/
+	sudo bash -c "cat /etc/hosts >> /home/travis/srv/etc/hosts"
+	cat /home/travis/srv/etc/apt/sources.list
+	sudo sed -e 's/ main/ main universe/' -i  /home/travis/srv/etc/apt/sources.list
+	cat /home/travis/srv/etc/apt/sources.list
+	sudo mount -o bind /proc  /home/travis/srv/proc
+	sudo mount -o bind /sys   /home/travis/srv/sys
+	sudo mount -o bind /dev   /home/travis/srv/dev
+	sudo mount -o bind /home/travis  /home/travis/srv/home/travis
+	sudo bash -c "grep travis /etc/passwd >>  /home/travis/srv/etc/passwd"
+	sudo bash -c "grep travis /etc/group  >>  /home/travis/srv/etc/group "
+	
+	schroot -c trusty -- sudo apt-get update
+	schroot -c trusty -- pwd
+	schroot -c trusty -- ls -l
+	schroot -c trusty -- ls -l /
+	schroot -c trusty -- sudo apt-cache policy
+	schroot -c trusty -- sudo apt-get -y install libopenal-dev
+	
+	# Install chroot dependencies
+	schroot -c trusty -- sudo apt-get update -qq
+	##- schroot -c trusty -- sudo bash $TRAVIS_BUILD_DIR/linux-chroot-command1
+	##- schroot -c trusty -- sudo apt-get -y install build-essential cmake
+	##- schroot -c trusty -- sudo apt-get -y install libogg-dev libvorbis-dev libopenal-dev
+	##- schroot -c trusty -- sudo apt-get -y install libxxf86vm-dev libcurl4-openssl-dev
+	##- schroot -c trusty -- sudo apt-get -y install libfribidi-dev libbluetooth-dev
+	##- schroot -c trusty -- sudo apt-get -y install libgl1-mesa-dev libglu1-mesa-dev
+	
+	ls -l
+	date
+	echo "TRAVIS_BUILD_DIR $(TRAVIS_BUILD_DIR)"
+	echo "TRAVIS_BRANCH    $(TRAVIS_BRANCH)"
+	echo "makefile schroot run..."
+	schroot -c trusty -- bash -c "TRAVIS_BUILD_DIR=$(TRAVIS_BUILD_DIR) TRAVIS_BRANCH=$(TRAVIS_BRANCH) bash $(TRAVIS_BUILD_DIR)/linux-chroot-command"
+	echo "makefile schroot done."
+	date
+	ls -l
+	
+	pwd
+	echo all done
+	
