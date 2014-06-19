@@ -53,7 +53,7 @@ pwd
   echo " " >> ../stkopt/readme
   echo "Download links: " >> ../stkopt/readme
   echo "  curl https://ming-openbox.rhcloud.com/uploadlist/upload_file_list.txt" >> ../stkopt/readme
-  echo "  curl -o t.tgz https://ming-openbox.rhcloud.com/phpsrc/file_download.php?file=stkopt-tgz-020" >> ../stkopt/readme
+  echo "  curl -o t.tgz https://ming-openbox.rhcloud.com/phpsrc/file_download.php?file=stkopt.tgz-020" >> ../stkopt/readme
   echo " " >> ../stkopt/readme
   echo 'ls -l ../stkopt'
   ls -l ../stkopt
