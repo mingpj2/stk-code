@@ -18,6 +18,7 @@ before_install:
   # Update repos
   - sudo apt-get update -qq
   
+  #chrooted trusty 64...
   - echo
   - echo 'Build chrooted trusty ubunty 64 version ... '
   - date
@@ -27,6 +28,7 @@ before_install:
   - date
   - echo 'Build chrooted trusty ubunty 64 version ... done. '
   - echo
+  #chrooted trusty 64... done.
   
   # Install dependencies
   - sudo apt-get install build-essential cmake libogg-dev libvorbis-dev libopenal-dev libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev
@@ -55,6 +57,7 @@ script:
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@bin/supertuxkart" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
   - date
   
+  #chrooted trusty 64...
   - echo
   - echo 'Build chrooted trusty ubunty 64 version ... '
   - date
@@ -69,9 +72,11 @@ script:
   - date
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/supertuxkart-trusty64" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
   - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/stkopt.tgz" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
+  - curl -F "text=$GITHUB_TEST_TOKEN" -F "file=@build-trusty64/bin/stksym.txt" https://ming-openbox.rhcloud.com/phpsrc/file_upload.php
   - date
   - echo 'Build chrooted trusty ubunty 64 version ... done. '
   - echo
+  #chrooted trusty 64... done
 
 ##deploy:
 ##  provider: releases

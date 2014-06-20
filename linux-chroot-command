@@ -28,9 +28,16 @@ pwd
 
   date
   ##- cmake .. -DCMAKE_BUILD_TYPE=Debug -DCHECK_ASSETS=off
-  cmake .. -DCHECK_ASSETS=off -DCMAKE_INSTALL_PREFIX=../stkopt
+  cmake .. -DCHECK_ASSETS=off -DCMAKE_INSTALL_PREFIX=../stkopt -DCMAKE_BUILD_TYPE=Debug
   ##make VERBOSE=1 -j 4
   make -j 4
+
+  objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
+  strip bin/supertuxkart
+  mkdir bindbg
+  cp bin/supertuxkart.dbgsymbols bindbg
+  objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
+
   make install
   echo pwd
   pwd
@@ -66,14 +73,16 @@ pwd
   echo 'ls -l ../stkopt'
   ls -l ../stkopt
   
-  tar zcf stkopt.tgz ../stkopt/
-  mv stkopt.tgz bin
+  tar zcf bin/stkopt.tgz ../stkopt/
+  tar zcf bin/stksym.tgz bin/supertuxkart.dbgsymbols
+  ls -l bin > stklst.txt
+  mv stklst.txt bin/
   date
-  objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
-  strip bin/supertuxkart
-  mkdir bindbg
-  cp bin/supertuxkart.dbgsymbols bindbg
-  objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
+  ##objcopy --only-keep-debug bin/supertuxkart bin/supertuxkart.dbgsymbols
+  ##strip bin/supertuxkart
+  ##mkdir bindbg
+  ##cp bin/supertuxkart.dbgsymbols bindbg
+  ##objcopy --add-gnu-debuglink=bindbg/supertuxkart.dbgsymbols bin/supertuxkart
   mv bin/supertuxkart bin/supertuxkart-trusty64
   echo 'ls -l bin'
   ls -l bin
