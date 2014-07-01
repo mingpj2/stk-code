@@ -67,7 +67,7 @@ pwd
 
   echo '#!/bin/bash' > ../stkopt/go
   echo 'DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"' >> ../stkopt/go
-  echo '"HOME=$DIR $DIR/supertuxkart"' >> ../stkopt/go
+  echo 'HOME=$DIR $DIR/supertuxkart' >> ../stkopt/go
   chmod a+rx ../stkopt/go
 
   echo 'ls -l ../stkopt'
