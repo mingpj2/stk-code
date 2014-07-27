@@ -30,9 +30,11 @@ using namespace irr;
 
 // -----------------------------------------------------------------------------
 
-ProgressBarWidget::ProgressBarWidget() : Widget(WTYPE_PROGRESS)
+ProgressBarWidget::ProgressBarWidget(bool show_label) : Widget(WTYPE_PROGRESS)
 {
     m_value = 0;
+    m_show_label = show_label;
+    setFocusable(false);
 }
 
 // -----------------------------------------------------------------------------
@@ -52,7 +54,10 @@ void ProgressBarWidget::add()
 void ProgressBarWidget::setValue(int value)
 {
     m_value = value;
-    setLabel(std::string(StringUtils::toString(value) + "%").c_str());
+    if (m_show_label)
+    {
+        setLabel(std::string(StringUtils::toString(value) + "%").c_str());
+    }
 }
 // -----------------------------------------------------------------------------
 

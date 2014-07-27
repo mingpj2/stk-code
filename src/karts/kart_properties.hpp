@@ -181,6 +181,9 @@ private:
      */
     float m_nitro_min_consumption;
 
+    /** Type of the kart (for the properties) */
+    std::string m_kart_type;
+
     /** Filename of the wheel models. */
     std::string m_wheel_filename[4];
     /**  Radius of the graphical wheels.  */
@@ -208,7 +211,7 @@ private:
     float       m_nitro_small_container;
     /** Nitro amount for big bittle. */
     float       m_nitro_big_container;
-    /* How much the speed of a kart might exceed its maximum speed (in m/s). */
+    /** How much the speed of a kart might exceed its maximum speed (in m/s). */
     float       m_nitro_max_speed_increase;
     /** Additional engine force to affect the kart. */
     float       m_nitro_engine_force;
@@ -247,7 +250,7 @@ private:
      /** The speed with which the roll (when leaning in a curve) changes
       *  (in radians/second). */
      float      m_lean_speed;
-     
+
      /** How long a jump must be in order to trigger the jump animation. */
      float      m_jump_animation_time;
 
@@ -324,9 +327,6 @@ private:
 
     /** The restitution factor to be used in collsions for this kart. */
     float m_restitution;
-
-    float m_upright_tolerance;
-    float m_upright_max_force;
 
     /** How far behind a kart slipstreaming is effective. */
     float m_slipstream_length;
@@ -543,8 +543,11 @@ public:
 
     // ------------------------------------------------------------------------
     /** Returns parameters for the speed-weighted objects */
-    const SpeedWeightedObject::Properties& getSpeedWeightedObjectProperties() const {return m_speed_weighted_object_properties;}
-    
+    const SpeedWeightedObject::Properties& getSpeedWeightedObjectProperties() const
+    {
+        return m_speed_weighted_object_properties;
+    }
+
     // ------------------------------------------------------------------------
     /** Returns the wheel base (distance front to rear axis). */
     float getWheelBase              () const {return m_wheel_base;            }
@@ -568,8 +571,17 @@ public:
 
     // ------------------------------------------------------------------------
     /** Returns the maximum speed dependent on the difficult level. */
-    float getMaxSpeed               () const {return
-                                   m_max_speed[race_manager->getDifficulty()];}
+    float getMaxSpeed               () const
+    {
+        return m_max_speed[race_manager->getDifficulty()];
+    }
+
+    // ------------------------------------------------------------------------
+    /** Return the absolute maximum speed, independent on the difficulty. */
+    float getAbsMaxSpeed            () const
+    {
+        return m_max_speed[m_max_speed.size()-1];
+    }
 
     // ------------------------------------------------------------------------
     /** Returns the nitro consumption. */
@@ -683,15 +695,6 @@ public:
         explosion. */
     float getExplosionInvulnerabilityTime() const
                                    { return m_explosion_invulnerability_time; }
-
-    // ------------------------------------------------------------------------
-    /** Returns how much a kart can roll/pitch before the upright constraint
-     *  counteracts. */
-    float getUprightTolerance       () const {return m_upright_tolerance;     }
-
-    // ------------------------------------------------------------------------
-    /** Returns the maximum value of the upright counteracting force. */
-    float getUprightMaxForce        () const {return m_upright_max_force;     }
 
     // ------------------------------------------------------------------------
     /** Returns the maximum length of a rubber band before it breaks. */
@@ -825,6 +828,10 @@ public:
     /** Returns the power increase depending on gear. */
     const std::vector<float>&
           getGearPowerIncrease      () const {return m_gear_power_increase;   }
+
+    // ------------------------------------------------------------------------
+    /** Returns the average power of the kart (in all gears). */
+    const float getAvgPower         () const;
 
     // ------------------------------------------------------------------------
     /** Returns distance between kart and camera. */

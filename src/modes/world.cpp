@@ -628,7 +628,7 @@ void World::resetAllKarts()
     {
         if (count++ > 100)
         {
-            Log::error("World", "Infitine loop waiting for all_finished?");
+            Log::error("World", "Infinite loop waiting for all_finished?");
             break;
         }
         m_physics->update(1.f/60.f);
@@ -793,7 +793,14 @@ void World::updateWorld(float dt)
         getPhase() == IN_GAME_MENU_PHASE      )
         return;
 
-    update(dt);
+    try
+    {
+        update(dt);
+    }
+    catch (AbortWorldUpdateException& e)
+    {
+        return;
+    }
 
 #ifdef DEBUG
     assert(m_magic_number == 0xB01D6543);

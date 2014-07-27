@@ -1,6 +1,7 @@
 uniform sampler2D displacement_tex;
 uniform sampler2D mask_tex;
 uniform sampler2D color_tex;
+uniform sampler2D tex;
 uniform vec2 dir;
 uniform vec2 dir2;
 
@@ -41,14 +42,6 @@ void main()
 	// Fade according to distance to cam
 	float fade = 1.0 - smoothstep(1.0, 100.0, camdist);
 
-	// Fade according to distance from the edges
-	const float mindist = 0.1;
-	fade *= smoothstep(0.0, mindist, uv_bis.x) * smoothstep(0.0, mindist, uv_bis.y) *
-		(1.0 - smoothstep(1.0 - mindist, 1.0, uv_bis.x)) *
-		(1.0 - smoothstep(1.0 - mindist, 1.0, uv_bis.y));
-
-	offset *= 50.0 * fade * maxlen;
-
 	vec4 shiftval;
 	shiftval.r = step(offset.x, 0.0) * -offset.x;
 	shiftval.g = step(0.0, offset.x) * offset.x;
@@ -64,5 +57,8 @@ void main()
 	float mask = texture(mask_tex, tc + shift).x;
 	tc += (mask < 1.) ? vec2(0.) : shift;
 
-	FragColor = texture(color_tex, tc);
+    vec4 col = texture(color_tex, tc);
+    vec4 blend_tex = texture(tex, uv);
+    col.rgb = blend_tex.rgb * blend_tex.a + (1. - blend_tex.a) * col.rgb;
+    FragColor = vec4(col.rgb, 1.);
 }

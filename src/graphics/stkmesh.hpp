@@ -3,6 +3,7 @@
 
 #include "graphics/glwrap.hpp"
 #include "graphics/irr_driver.hpp"
+#include "utils/tuple.hpp"
 
 #include <IMeshSceneNode.h>
 #include <IMesh.h>
@@ -10,27 +11,17 @@
 
 #include <vector>
 
-enum GeometricMaterial
+enum MeshMaterial
 {
-    FPSM_DEFAULT,
-    FPSM_ALPHA_REF_TEXTURE,
-    FPSM_NORMAL_MAP,
-    FPSM_GRASS,
-    FPSM_COUNT
-};
-
-enum ShadedMaterial
-{
-    SM_DEFAULT,
-    SM_ALPHA_REF_TEXTURE,
-    SM_RIMLIT,
-    SM_SPHEREMAP,
-    SM_SPLATTING,
-    SM_GRASS,
-    SM_UNLIT,
-    SM_DETAILS,
-    SM_UNTEXTURED,
-    SM_COUNT
+    MAT_DEFAULT,
+    MAT_ALPHA_REF,
+    MAT_NORMAL_MAP,
+    MAT_GRASS,
+    MAT_SPHEREMAP,
+    MAT_SPLATTING,
+    MAT_UNLIT,
+    MAT_DETAIL,
+    MAT_COUNT
 };
 
 enum TransparentMaterial
@@ -38,16 +29,12 @@ enum TransparentMaterial
     TM_DEFAULT,
     TM_ADDITIVE,
     TM_BUBBLE,
+    TM_DISPLACEMENT,
     TM_COUNT
 };
 
 struct GLMesh {
-    GLuint vao_first_pass;
-    GLuint vao_second_pass;
-    GLuint vao_glow_pass;
-    GLuint vao_displace_pass;
-    GLuint vao_displace_mask_pass;
-    GLuint vao_rsm_pass;
+    GLuint vao;
     GLuint vao_shadow_pass;
     GLuint vertex_buffer;
     GLuint index_buffer;
@@ -57,103 +44,104 @@ struct GLMesh {
     size_t IndexCount;
     size_t Stride;
     core::matrix4 TextureMatrix;
+    size_t vaoBaseVertex;
+    size_t vaoOffset;
+    video::E_VERTEX_TYPE VAOType;
 };
 
-GLuint createVAO(GLuint vbo, GLuint idx, GLuint attrib_position, GLuint attrib_texcoord, GLuint attrib_second_texcoord, GLuint attrib_normal, GLuint attrib_tangent, GLuint attrib_bitangent, GLuint attrib_color, size_t stride);
 GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb);
-void initvaostate(GLMesh &mesh, GeometricMaterial GeoMat, ShadedMaterial ShadedMat);
-void initvaostate(GLMesh &mesh, TransparentMaterial TranspMat);
+void fillLocalBuffer(GLMesh &, scene::IMeshBuffer* mb);
+video::E_VERTEX_TYPE getVTXTYPEFromStride(size_t stride);
+GLuint createVAO(GLuint vbo, GLuint idx, video::E_VERTEX_TYPE type);
 core::matrix4 computeMVP(const core::matrix4 &ModelViewProjectionMatrix);
-core::matrix4 computeTIMV(const core::matrix4 &TransposeInverseModelView);
 bool isObject(video::E_MATERIAL_TYPE type);
 
 core::vector3df getWind();
 
 // Pass 1 shader (ie shaders that outputs normals and depth)
-template<enum GeometricMaterial T>
-class GroupedFPSM
+class ListMatDefault
 {
 public:
-    static std::vector<GLMesh *> MeshSet;
-    static std::vector<core::matrix4> MVPSet, TIMVSet;
-
-    static void reset()
-    {
-        MeshSet.clear();
-        MVPSet.clear();
-        TIMVSet.clear();
-    }
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > Arguments;
 };
 
-template<enum GeometricMaterial T>
-std::vector<GLMesh *> GroupedFPSM<T>::MeshSet;
-template<enum GeometricMaterial T>
-std::vector<core::matrix4> GroupedFPSM<T>::MVPSet;
-template<enum GeometricMaterial T>
-std::vector<core::matrix4> GroupedFPSM<T>::TIMVSet;
-
-
-template<typename Shader, typename...uniforms>
-void draw(const GLMesh &mesh, GLuint vao, uniforms... Args)
-{
-    irr_driver->IncreaseObjectCount();
-    GLenum ptype = mesh.PrimitiveType;
-    GLenum itype = mesh.IndexType;
-    size_t count = mesh.IndexCount;
-
-    Shader::setUniforms(Args...);
-
-    assert(vao);
-    glBindVertexArray(vao);
-    glDrawElements(ptype, count, itype, 0);
-}
-
-void drawGrassPass1(const GLMesh &mesh, const core::matrix4 & ModelViewProjectionMatrix, const core::matrix4 &TransposeInverseModelView, core::vector3df windDir);
-
-// Pass 2 shader (ie shaders that outputs final color)
-template<enum ShadedMaterial T>
-class GroupedSM
+class ListMatAlphaRef
 {
 public:
-    static std::vector<GLMesh *> MeshSet;
-    static std::vector<core::matrix4> MVPSet, TIMVSet;
-
-    static void reset()
-    {
-        MeshSet.clear();
-        MVPSet.clear();
-        TIMVSet.clear();
-    }
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > Arguments;
 };
 
-template<enum ShadedMaterial T>
-std::vector<GLMesh *> GroupedSM<T>::MeshSet;
-template<enum ShadedMaterial T>
-std::vector<core::matrix4> GroupedSM<T>::MVPSet;
-template<enum ShadedMaterial T>
-std::vector<core::matrix4> GroupedSM<T>::TIMVSet;
+class ListMatNormalMap
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > Arguments;
+};
 
-void drawDetailledObjectPass2(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
-void drawObjectPass2(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix);
-void drawUntexturedObject(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
-void drawObjectRefPass2(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix);
-void drawSphereMap(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TransposeInverseModelView);
-void drawSplatting(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
-void drawGrassPass2(const GLMesh &mesh, const core::matrix4 & ModelViewProjectionMatrix, core::vector3df windDir);
-void drawObjectRimLimit(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TransposeInverseModelView, const core::matrix4 &TextureMatrix);
-void drawObjectUnlit(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
+class ListMatGrass
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::vector3df, video::SColorf> > Arguments;
+};
 
-// Shadow pass
-void drawShadowRef(const GLMesh &mesh, const core::matrix4 &ModelMatrix);
-void drawShadow(const GLMesh &mesh, const core::matrix4 &ModelMatrix);
+class ListMatSphereMap
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > Arguments;
+};
+
+class ListMatSplatting
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, video::SColorf> > Arguments;
+};
+
+class ListMatUnlit
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > Arguments;
+};
+
+class ListMatDetails
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > Arguments;
+};
+
+
+class ListBlendTransparent
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > Arguments;
+};
+
+class ListAdditiveTransparent
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > Arguments;
+};
+
+class ListBlendTransparentFog
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, float, float, float, float, float, video::SColorf> > Arguments;
+};
+
+class ListAdditiveTransparentFog
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, float, float, float, float, float, video::SColorf> > Arguments;
+};
+
+class ListDisplacement
+{
+public:
+    static std::vector<STK::Tuple<GLMesh *, core::matrix4> > Arguments;
+};
 
 // Forward pass (for transparents meshes)
-void drawTransparentObject(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix);
-void drawTransparentFogObject(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix, const core::matrix4 &TextureMatrix);
 void drawBubble(const GLMesh &mesh, const core::matrix4 &ModelViewProjectionMatrix);
 
-GeometricMaterial MaterialTypeToGeometricMaterial(video::E_MATERIAL_TYPE);
-ShadedMaterial MaterialTypeToShadedMaterial(video::E_MATERIAL_TYPE, irr::video::ITexture **textures);
+MeshMaterial MaterialTypeToMeshMaterial(video::E_MATERIAL_TYPE, video::E_VERTEX_TYPE);
 TransparentMaterial MaterialTypeToTransparentMaterial(video::E_MATERIAL_TYPE, f32 MaterialTypeParam);
 
 #endif // STKMESH_H

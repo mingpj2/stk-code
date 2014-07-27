@@ -206,7 +206,7 @@ private:
     /** True if this track (textures and track data) should be cached. Used
      *  for the overworld. */
     bool m_cache_track;
-    
+
 
 #ifdef DEBUG
     /** A list of textures that were cached before the track is loaded.
@@ -371,7 +371,8 @@ private:
     video::SColor       m_fog_color;
 
     /** The texture for the mini map, which is displayed in the race gui. */
-    video::ITexture         *m_mini_map;
+    video::ITexture         *m_old_rtt_mini_map;
+    FrameBuffer             *m_new_rtt_mini_map;
     core::dimension2du      m_mini_map_size;
     float                   m_minimap_x_scale;
     float                   m_minimap_y_scale;
@@ -387,7 +388,7 @@ private:
 
     float m_displacement_speed;
     float m_caustics_speed;
-    
+
     /** The levels for color correction
      * m_color_inlevel(black, gamma, white)
      * m_color_outlevel(black, white)*/
@@ -396,6 +397,9 @@ private:
 
     /** List of all bezier curves in the track - for e.g. camera, ... */
     std::vector<BezierCurve*> m_all_curves;
+
+    /** The number of laps the track will be raced if no other value is given.*/
+    int m_default_number_of_laps;
 
     void loadTrackInfo();
     void loadQuadGraph(unsigned int mode_id, const bool reverse);
@@ -448,7 +452,8 @@ public:
     std::vector< std::vector<float> > buildHeightMap();
     // ------------------------------------------------------------------------
     /** Returns the texture with the mini map for this track. */
-    const video::ITexture*    getMiniMap    () const { return m_mini_map; }
+    const video::ITexture*    getOldRttMiniMap() const { return m_old_rtt_mini_map; }
+    const FrameBuffer*        getNewRttMiniMap() const { return m_new_rtt_mini_map; }
     // ------------------------------------------------------------------------
     const core::dimension2du& getMiniMapSize() const { return m_mini_map_size; }
     // ------------------------------------------------------------------------
@@ -496,10 +501,7 @@ public:
     btTransform        getStartTransform (unsigned int index) const
     {
         if (index >= m_start_transforms.size())
-        {
-            fprintf(stderr, "No start position for kart %i\n", index);
-            abort();
-        }
+            Log::fatal("Tracj", "No start position for kart %i.", index);
         return m_start_transforms[index];
     }
     // ------------------------------------------------------------------------
@@ -600,7 +602,7 @@ public:
 
     bool getBloom() const { return m_bloom; }
     float getBloomThreshold() const { return m_bloom_threshold; }
-    
+
     /** Return the color levels for color correction shader */
     core::vector3df getColorLevelIn() const { return m_color_inlevel; }
     core::vector2df getColorLevelOut() const { return m_color_outlevel; }
@@ -608,11 +610,12 @@ public:
     bool hasLensFlare() const { return m_lensflare; }
     bool hasGodRays() const { return m_godrays; }
     bool hasShadows() const { return m_shadows; }
-    
+
     void addNode(scene::ISceneNode* node) { m_all_nodes.push_back(node); }
 
     float getDisplacementSpeed() const { return m_displacement_speed; }
     float getCausticsSpeed() const { return m_caustics_speed; }
+    const int getDefaultNumberOfLaps() const { return m_default_number_of_laps;}
     bool operator<(const Track &other) const;
 };   // class Track
 

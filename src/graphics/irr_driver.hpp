@@ -70,7 +70,6 @@ enum STKRenderingPass
     SOLID_LIT_PASS,
     TRANSPARENT_PASS,
     GLOW_PASS,
-    DISPLACEMENT_PASS,
     SHADOW_PASS,
     PASS_COUNT,
 };
@@ -230,7 +229,7 @@ private:
     core::array<video::IRenderTarget> m_mrt;
 
     /** Matrixes used in several places stored here to avoid recomputation. */
-    core::matrix4 m_ViewMatrix, m_InvViewMatrix, m_ProjMatrix, m_InvProjMatrix, m_ProjViewMatrix, m_InvProjViewMatrix;
+    core::matrix4 m_ViewMatrix, m_InvViewMatrix, m_ProjMatrix, m_InvProjMatrix, m_ProjViewMatrix, m_previousProjViewMatrix, m_InvProjViewMatrix;
 
     std::vector<video::ITexture *> SkyboxTextures;
     std::vector<video::ITexture *> SphericalHarmonicsTextures;
@@ -345,14 +344,13 @@ private:
     class STKMeshSceneNode *m_sun_interposer;
     scene::CLensFlareSceneNode *m_lensflare;
     scene::ICameraSceneNode *m_suncam;
+    float m_shadows_cam[4][24];
 
     std::vector<GlowData> m_glowing;
 
     std::vector<LightNode *> m_lights;
 
     std::vector<BloomData> m_forcedbloom;
-
-    std::vector<scene::ISceneNode *> m_displacing;
 
     std::vector<scene::ISceneNode *> m_background;
 
@@ -379,7 +377,7 @@ private:
     void renderGlow(std::vector<GlowData>& glows);
     void renderSSAO();
     void renderLights(unsigned pointlightCount);
-    void renderDisplacement();
+    void renderShadowsDebug();
     void doScreenShot();
 public:
          IrrDriver();
@@ -666,12 +664,6 @@ public:
     // ------------------------------------------------------------------------
     const std::vector<BloomData> &getForcedBloom() const { return m_forcedbloom; }
     // ------------------------------------------------------------------------
-    void clearDisplacingNodes() { m_displacing.clear(); }
-    // ------------------------------------------------------------------------
-    const std::vector<scene::ISceneNode *> &getDisplacingNodes() const { return m_displacing; }
-    // ------------------------------------------------------------------------
-    void addDisplacingNode(scene::ISceneNode * const n) { m_displacing.push_back(n); }
-    // ------------------------------------------------------------------------
     void clearBackgroundNodes() { m_background.clear(); }
     // ------------------------------------------------------------------------
     void addBackgroundNode(scene::ISceneNode * const n) { m_background.push_back(n); }
@@ -692,7 +684,8 @@ public:
     void setProjMatrix(core::matrix4 matrix) { m_ProjMatrix = matrix; matrix.getInverse(m_InvProjMatrix); }
     const core::matrix4 &getProjMatrix() const { return m_ProjMatrix; }
     const core::matrix4 &getInvProjMatrix() const { return m_InvProjMatrix; }
-    void genProjViewMatrix() { m_ProjViewMatrix = m_ProjMatrix * m_ViewMatrix; m_InvProjViewMatrix = m_ProjViewMatrix; m_InvProjViewMatrix.makeInverse(); }
+    void genProjViewMatrix() { m_previousProjViewMatrix = m_ProjViewMatrix; m_ProjViewMatrix = m_ProjMatrix * m_ViewMatrix; m_InvProjViewMatrix = m_ProjViewMatrix; m_InvProjViewMatrix.makeInverse(); }
+    const core::matrix4 & getPreviousPVMatrix() { return m_previousProjViewMatrix; }
     const core::matrix4 &getProjViewMatrix() const { return m_ProjViewMatrix; }
     const core::matrix4 &getInvProjViewMatrix() const { return m_InvProjViewMatrix; }
 #ifdef DEBUG
@@ -714,8 +707,11 @@ public:
     unsigned UpdateLightsInfo(scene::ICameraSceneNode * const camnode, float dt);
     void computeCameraMatrix(scene::ICameraSceneNode * const camnode, size_t width, size_t height);
 
-    // --------------------- RTT --------------------
+    // --------------------- OLD RTT --------------------
     /**
+      * THIS IS THE OLD OPENGL 1 RTT PROVIDER, USE THE SHADER-BASED
+      * RTT FOR NEW DEVELOPMENT
+      *
       * Class that provides RTT (currently, only when no other 3D rendering
       * in the main scene is required)
       * Provides an optional 'setupRTTScene' method to make it quick and easy

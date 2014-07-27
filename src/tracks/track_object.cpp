@@ -215,12 +215,6 @@ void TrackObject::init(const XMLNode &xml_node, scene::ISceneNode* parent,
 
             irr_driver->addForcedBloomNode(glownode, power);
         }
-
-        bool displacing = false;
-        if (xml_node.get("displacing", &displacing) && displacing && glownode)
-        {
-            irr_driver->addDisplacingNode(glownode);
-        }
     }
 
 

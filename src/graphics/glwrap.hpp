@@ -25,6 +25,7 @@
 #endif
 
 #include <vector>
+#include "irr_driver.hpp"
 #include "utils/log.hpp"
 
 // already includes glext.h, which defines useful GL constants.
@@ -68,10 +69,13 @@ extern PFNGLUNIFORM4IPROC glUniform4i;
 extern PFNGLGETPROGRAMIVPROC glGetProgramiv;
 extern PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
 extern PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
+extern PFNGLBINDATTRIBLOCATIONPROC glBindAttribLocation;
 extern PFNGLBLENDEQUATIONPROC glBlendEquation;
 extern PFNGLVERTEXATTRIBDIVISORPROC glVertexAttribDivisor;
 extern PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;
+extern PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;
 extern PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;
+extern PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;
 extern PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 extern PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;
 extern PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
@@ -107,6 +111,7 @@ extern PFNGLDEBUGMESSAGECALLBACKARBPROC glDebugMessageCallbackARB;
 
 void initGL();
 GLuint LoadTFBProgram(const char * vertex_file_path, const char **varyings, unsigned varyingscount);
+video::ITexture* getUnicolorTexture(video::SColor c);
 void setTexture(unsigned TextureUnit, GLuint TextureId, GLenum MagFilter, GLenum MinFilter, bool allowAF = false);
 GLuint LoadShader(const char * file, unsigned type);
 
@@ -143,6 +148,19 @@ GLint LoadProgram(Types ... args)
 {
     GLint ProgramID = glCreateProgram();
     loadAndAttach(ProgramID, args...);
+    if (irr_driver->getGLSLVersion() < 330)
+    {
+        glBindAttribLocation(ProgramID, 0, "Position");
+        glBindAttribLocation(ProgramID, 1, "Normal");
+        glBindAttribLocation(ProgramID, 2, "Color");
+        glBindAttribLocation(ProgramID, 3, "Texcoord");
+        glBindAttribLocation(ProgramID, 4, "SecondTexcoord");
+        glBindAttribLocation(ProgramID, 5, "Tangent");
+        glBindAttribLocation(ProgramID, 6, "Bitangent");
+        glBindAttribLocation(ProgramID, 7, "Origin");
+        glBindAttribLocation(ProgramID, 8, "Orientation");
+        glBindAttribLocation(ProgramID, 9, "Scale");
+    }
     glLinkProgram(ProgramID);
 
     GLint Result = GL_FALSE;
@@ -199,7 +217,7 @@ public:
     FrameBuffer(const std::vector <GLuint> &RTTs, GLuint DS, size_t w, size_t h, bool layered = false);
     ~FrameBuffer();
     void Bind();
-    std::vector<GLuint> &getRTT() { return RenderTargets; }
+    const std::vector<GLuint> &getRTT() const { return RenderTargets; }
     GLuint &getDepthTexture() { assert(DepthTexture); return DepthTexture; }
     size_t getWidth() const { return width; }
     size_t getHeight() const { return height; }
@@ -218,13 +236,18 @@ void compressTexture(irr::video::ITexture *tex, bool srgb, bool premul_alpha = f
 bool loadCompressedTexture(const std::string& compressed_tex);
 void saveCompressedTexture(const std::string& compressed_tex);
 
+std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb);
+unsigned getVAO(video::E_VERTEX_TYPE type);
+unsigned getVBO(video::E_VERTEX_TYPE type);
+void resetVAO();
+
 void draw3DLine(const core::vector3df& start,
     const core::vector3df& end, irr::video::SColor color);
 
 void draw2DImageFromRTT(GLuint texture, size_t texture_w, size_t texture_h,
     const core::rect<s32>& destRect,
     const core::rect<s32>& sourceRect, const core::rect<s32>* clipRect,
-    bool useAlphaChannelOfTexture);
+    const video::SColor &colors, bool useAlphaChannelOfTexture);
 
 void draw2DImage(const irr::video::ITexture* texture, const irr::core::rect<s32>& destRect,
     const irr::core::rect<s32>& sourceRect, const irr::core::rect<s32>* clipRect,

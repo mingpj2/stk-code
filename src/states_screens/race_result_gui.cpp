@@ -92,7 +92,7 @@ void RaceResultGUI::init()
 
     // Calculate screenshot scrolling parameters
     const std::vector<std::string> tracks =
-        race_manager->getGrandPrix()->getTrackNames();
+        race_manager->getGrandPrix().getTrackNames();
     int n_tracks = tracks.size();
     int currentTrack = race_manager->getTrackNumber();
     m_start_track = currentTrack;
@@ -208,7 +208,7 @@ void RaceResultGUI::enableAllButtons()
 void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
                                   const std::string& name, const int playerID)
 {
-    int n_tracks = race_manager->getGrandPrix()->getNumberOfTracks();
+    int n_tracks = race_manager->getGrandPrix().getNumberOfTracks();
     if (name == "up_button" && n_tracks > m_max_tracks && m_start_track > 0)
     {
         m_start_track--;
@@ -297,9 +297,8 @@ void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
             }
             return;
         }
-        fprintf(stderr, "Incorrect event '%s' when things are unlocked.\n",
-                name.c_str());
-        assert(false);
+        Log::fatal("RaceResultGUI", "Incorrect event '%s' when things are unlocked.",
+                   name.c_str());
     }
 
     // If we're playing online :
@@ -342,11 +341,8 @@ void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
                               MessageDialog::MESSAGE_DIALOG_CONFIRM, this, false);
         }
         else if (!getWidget(name.c_str())->isVisible())
-        {
-            fprintf(stderr, "Incorrect event '%s' when things are unlocked.\n",
-                            name.c_str());
-            assert(false);
-        }
+            Log::fatal("RaceResultGUI", "Incorrect event '%s' when things are unlocked.",
+                       name.c_str());
         return;
     }
 
@@ -387,10 +383,8 @@ void RaceResultGUI::eventCallback(GUIEngine::Widget* widget,
         }
     }
     else
-    {
-        fprintf(stderr, "Incorrect event '%s' for normal race.\n",
-                name.c_str());
-    }
+        Log::fatal("RaceResultGUI", "Incorrect event '%s' for normal race.",
+                   name.c_str());
     return;
 }   // eventCallback
 
@@ -615,8 +609,8 @@ void RaceResultGUI::onUpdate(float dt)
         }
         catch (std::exception& e)
         {
-            fprintf(stderr, "[RaceResultGUI] WARNING: exception caught when "
-                            "trying to load music: %s\n", e.what());
+            Log::error("RaceResultGUI", "Exception caught when "
+                       "trying to load music: %s", e.what());
         }
     }
 }   // onUpdate
@@ -1121,7 +1115,7 @@ void RaceResultGUI::enableGPProgress()
         status_label->m_h = font_height;
         status_label->add();
         status_label->setText(_("Track %i/%i", currentTrack + 1,
-            race_manager->getGrandPrix()->getNumberOfTracks()), true);
+            race_manager->getGrandPrix().getNumberOfTracks()), true);
         addGPProgressWidget(status_label);
         y = (status_label->m_y + status_label->m_h + 5);
 
@@ -1316,7 +1310,7 @@ void RaceResultGUI::displayHighScores()
 void RaceResultGUI::displayScreenShots()
 {
     const std::vector<std::string> tracks =
-        race_manager->getGrandPrix()->getTrackNames();
+        race_manager->getGrandPrix().getTrackNames();
     int currentTrack = race_manager->getTrackNumber();
 
     int n_sshot = 1;

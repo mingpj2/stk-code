@@ -80,6 +80,14 @@ void MainMenuScreen::loadedFromFile()
 {
     LabelWidget* w = getWidget<LabelWidget>("info_addons");
     w->setScrollSpeed(15);
+
+#if DEBUG_MENU_ITEM != 1
+    RibbonWidget* rw = getWidget<RibbonWidget>("menu_bottomrow");
+    rw->removeChildNamed("test_gpwin");
+    rw->removeChildNamed("test_gplose");
+    rw->removeChildNamed("test_unlocked");
+    rw->removeChildNamed("test_unlocked2");
+#endif
 }   // loadedFromFile
 
 // ----------------------------------------------------------------------------
@@ -230,14 +238,12 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
     */
 
 #if DEBUG_MENU_ITEM
-    if (selection == "gpEditor")
+    if (selection == "test_gpwin")
     {
-        // The DEBUG item
         StoryModeStatus* sms = PlayerManager::getCurrentPlayer()->getStoryModeStatus();
         sms->unlockFeature(const_cast<ChallengeStatus*>(sms->getChallengeStatus("gp1")),
             RaceManager::DIFFICULTY_HARD);
 
-        // GP WIN
         StateManager::get()->enterGameState();
         race_manager->setMinorMode(RaceManager::MINOR_MODE_CUTSCENE);
         race_manager->setNumKarts(0);
@@ -248,9 +254,9 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
         StateManager::get()->pushScreen(scene);
         const std::string winners[] = { "elephpant", "nolok", "pidgin" };
         scene->setKarts(winners);
-
-        // GP Lose
-        /*
+    }
+    else if (selection == "test_gplose")
+    {
         StateManager::get()->enterGameState();
         race_manager->setMinorMode(RaceManager::MINOR_MODE_CUTSCENE);
         race_manager->setNumKarts(0);
@@ -265,10 +271,13 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
         //losers.push_back("wilber");
         //losers.push_back("tux");
         scene->setKarts(losers);
-        */
-
-        /*
-        // FEATURE UNLOCKED
+    }
+    else if (selection == "test_unlocked" || selection == "test_unlocked2")
+    {
+        StoryModeStatus* sms = PlayerManager::getCurrentPlayer()->getStoryModeStatus();
+        sms->unlockFeature(const_cast<ChallengeStatus*>(sms->getChallengeStatus("gp1")),
+            RaceManager::DIFFICULTY_HARD);
+        
         StateManager::get()->enterGameState();
         race_manager->setMinorMode(RaceManager::MINOR_MODE_CUTSCENE);
         race_manager->setNumKarts(0);
@@ -284,12 +293,8 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
         ((CutsceneWorld*)World::getWorld())->setParts(parts);
 
         scene->addTrophy(RaceManager::DIFFICULTY_EASY);
-        //StateManager::get()->pushScreen(scene);
 
-        static int i = 1;
-        i++;
-
-        if (i % 2 == 0)
+        if (selection == "test_unlocked")
         {
             // the passed kart will not be modified, that's why I allow myself
             // to use const_cast
@@ -297,11 +302,12 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
                                    const_cast<KartProperties*>(
                                         kart_properties_manager->getKart("tux")
                                                               ),
-                                   L"Unlocked"
+                                    L"You unlocked <actual text would go here...>"
                                    );
+            scene->addUnlockedTrack(track_manager->getTrack("lighthouse"));
             StateManager::get()->pushScreen(scene);
         }
-        else if (i % 2 == 1)
+        else if (selection == "test_unlocked2")
         {
             std::vector<video::ITexture*> textures;
             textures.push_back(irr_driver->getTexture(
@@ -317,11 +323,10 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
                 track_manager->getTrack("snowmountain")
                              ->getScreenshotFile().c_str()));
 
-            scene->addUnlockedPictures(textures, 4.0, 3.0, L"You did it");
+            scene->addUnlockedPictures(textures, 4.0, 3.0, L"You unlocked <actual text would go here...>");
 
             StateManager::get()->pushScreen(scene);
         }
-        */
     }
     else
 #endif
@@ -375,8 +380,8 @@ void MainMenuScreen::eventCallback(Widget* widget, const std::string& name,
 
         if (kart_properties_manager->getKart(UserConfigParams::m_default_kart) == NULL)
         {
-            fprintf(stderr, "[MainMenuScreen] WARNING: cannot find kart '%s', will revert to default\n",
-                    UserConfigParams::m_default_kart.c_str());
+            Log::warn("MainMenuScreen", "Cannot find kart '%s', will revert to default",
+                      UserConfigParams::m_default_kart.c_str());
             UserConfigParams::m_default_kart.revertToDefaults();
         }
         race_manager->setLocalKartInfo(0, UserConfigParams::m_default_kart);

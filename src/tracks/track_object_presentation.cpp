@@ -24,8 +24,10 @@
 #include "config/user_config.hpp"
 #include "graphics/irr_driver.hpp"
 #include "graphics/material_manager.hpp"
+#include "graphics/mesh_tools.hpp"
 #include "graphics/particle_emitter.hpp"
 #include "graphics/particle_kind_manager.hpp"
+#include "graphics/stkmeshscenenode.hpp"
 #include "graphics/stkinstancedscenenode.hpp"
 #include "io/file_manager.hpp"
 #include "io/xml_node.hpp"
@@ -96,13 +98,22 @@ const core::vector3df& TrackObjectPresentationSceneNode::getScale() const
 
 
 void TrackObjectPresentationSceneNode::move(const core::vector3df& xyz, const core::vector3df& hpr,
-                                            const core::vector3df& scale)
+    const core::vector3df& scale)
 {
     if (m_node == NULL) return;
 
-    m_node->setPosition(xyz);
+    if (m_node->getParent() != NULL)
+    {
+        scene::ISceneNode* parent = m_node->getParent();
+        m_node->setPosition((xyz - parent->getAbsolutePosition()) / parent->getScale());
+    }
+    else
+    {
+        m_node->setPosition(xyz);
+    }
     m_node->setRotation(hpr);
     m_node->setScale(scale);
+    m_node->updateAbsolutePosition();
 }
 
 void TrackObjectPresentationSceneNode::setEnable(bool enabled)
@@ -254,13 +265,11 @@ TrackObjectPresentationMesh::TrackObjectPresentationMesh(const XMLNode& xml_node
     else
     {
         m_mesh = irr_driver->getMesh(model_name);
-
+        
         if (tangent)
         {
-            scene::IMeshManipulator* manip = irr_driver->getVideoDriver()->getMeshManipulator();
-            // TODO: perhaps the original mesh leaks here?
-            m_mesh = manip->createMeshWithTangents(m_mesh);
-       }
+            m_mesh = MeshTools::createMeshWithTangents(m_mesh, &MeshTools::isNormalMap);
+        }
     }
 
     if (!m_mesh)
@@ -365,9 +374,21 @@ void TrackObjectPresentationMesh::init(const XMLNode* xml_node, scene::ISceneNod
     }
     else
     {
+        bool displacing = false;
+        if (xml_node)
+            xml_node->get("displacing", &displacing);
+
         m_node = irr_driver->addMesh(m_mesh, parent);
+
+        STKMeshSceneNode* stkmesh = dynamic_cast<STKMeshSceneNode*>(m_node);
+        if (displacing && stkmesh != NULL)
+            stkmesh->setIsDisplacement(displacing);
+
         m_frame_start = 0;
         m_frame_end = 0;
+
+        if (World::getWorld() != NULL && World::getWorld()->getTrack() != NULL && xml_node != NULL)
+            World::getWorld()->getTrack()->handleAnimatedTextures(m_node, *xml_node);
     }
 //#ifdef DEBUG
 //    std::string debug_name = model_name+" (track-object)";
@@ -475,10 +496,7 @@ TrackObjectPresentationSound::TrackObjectPresentationSound(const XMLNode& xml_no
         }
     }
     else
-    {
-        fprintf(stderr,
-             "[TrackObject] Sound emitter object could not be created\n");
-    }
+        Log::error("TrackObject", "Sound emitter object could not be created.");
 
     if (trigger_when_near)
     {
@@ -732,9 +750,7 @@ TrackObjectPresentationActionTrigger::TrackObjectPresentationActionTrigger(const
     m_action_active = true;
 
     if (m_action.size() == 0)
-    {
-        fprintf(stderr, "[TrackObject] WARNING: action-trigger has no action defined\n");
-    }
+        Log::warn("TrackObject", "Action-trigger has no action defined.");
 
     ItemManager::get()->newItem(m_init_xyz, trigger_distance, this);
 }
@@ -870,10 +886,7 @@ void TrackObjectPresentationActionTrigger::onTriggerItemApproached(Item* who)
         return;
     }
     else
-    {
-        fprintf(stderr, "[TrackObject] WARNING: unknown action <%s>\n",
-                m_action.c_str());
-    }
+        Log::warn("TrackObject", "Unknown action '%s'", m_action.c_str());
 }
 
 
