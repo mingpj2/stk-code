@@ -1,0 +1,33 @@
+
+
+When playing "what a mesh", the last few log lines:
+
+[debug  ] RaceManager: Nb of karts=4, ai:3 players:1
+[warn   ] material: Track uses deprecated texture 'grass.jpg'
+[warn   ] physics: Kart at (-18.662350 4.474606 3.892898) is too high above ground at (-18.662350 -1.522975 3.892898)
+[error  ] [World]: No valid starting position for kart 0 on track addon_what-a-mesh.
+
+
+If change the code src/modes/world.cpp, the game play normally:
+
+    597         if (!kart_over_ground)
+    598         {
+    599             Log::error("[World]",
+    600                        "No valid starting position for kart %d on track %s.",
+    601                         (int)(i-m_karts.begin()), m_track->getIdent().c_str());
+    602             if (UserConfigParams::m_artist_debug_mode)
+    603             {
+    604                 Log::warn("[World]", "Activating fly mode.");
+    605                 (*i)->flyUp();
+    606                 continue;
+    607             }
+    608             else
+    609             {
+  -  610                 exit(-1);
+  +  610                 ///exit(-1);
+  +  610                 Log::warn("[World]", " ");
+  +  610                 Log::warn("[World]", "Activating normal mode. Ignore starting position error.");
+  +  610                 Log::warn("[World]", " ");
+    611             }
+    615         }
+
