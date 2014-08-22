@@ -207,13 +207,14 @@ void fillLocalBuffer(GLMesh &mesh, scene::IMeshBuffer* mb)
     const u32 vertexCount = mb->getVertexCount();
 
     const c8* vbuf = static_cast<const c8*>(vertices);
-    glBufferData(GL_ARRAY_BUFFER, vertexCount * mesh.Stride, vbuf, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexCount * mesh.Stride, vbuf, GL_STREAM_DRAW);
     assert(vertexCount);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.index_buffer);
     const void* indices = mb->getIndices();
+    mesh.IndexCount = mb->getIndexCount();
 
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.IndexCount * getUnsignedSize(mesh.IndexType), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.IndexCount * getUnsignedSize(mesh.IndexType), indices, GL_STREAM_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -292,18 +293,3 @@ bool isObject(video::E_MATERIAL_TYPE type)
         return true;
     return false;
 }
-
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > ListMatDefault::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > ListMatAlphaRef::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > ListMatSphereMap::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > ListMatDetails::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::vector3df, video::SColorf> > ListMatGrass::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > ListMatUnlit::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, video::SColorf> > ListMatSplatting::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, core::matrix4, video::SColorf> > ListMatNormalMap::Arguments;
-
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > ListBlendTransparent::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4> > ListAdditiveTransparent::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, float, float, float, float, float, video::SColorf> > ListBlendTransparentFog::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4, core::matrix4, float, float, float, float, float, video::SColorf> > ListAdditiveTransparentFog::Arguments;
-std::vector<STK::Tuple<GLMesh *, core::matrix4> > ListDisplacement::Arguments;

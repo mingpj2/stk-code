@@ -8,6 +8,7 @@
 #include "tracks/track.hpp"
 #include "graphics/camera.hpp"
 #include "utils/profiler.hpp"
+#include "utils/cpp2011.hpp"
 
 using namespace irr;
 
@@ -99,7 +100,7 @@ void STKAnimatedMesh::render()
                 MeshMaterial MatType = MaterialTypeToMeshMaterial(type, mb->getVertexType());
                 MeshSolidMaterial[MatType].push_back(&mesh);
             }
-            std::pair<unsigned, unsigned> p = getVAOOffsetAndBase(mb);
+            std::pair<unsigned, unsigned> p = VAOManager::getInstance()->getBase(mb);
             mesh.vaoBaseVertex = p.first;
             mesh.vaoOffset = p.second;
             mesh.VAOType = mb->getVertexType();
@@ -113,11 +114,15 @@ void STKAnimatedMesh::render()
         const video::SMaterial& material = ReadOnlyMaterials ? mb->getMaterial() : Materials[i];
         if (isObject(material.MaterialType))
         {
-            if (irr_driver->getPhase() == SOLID_NORMAL_AND_DEPTH_PASS || irr_driver->getPhase() == TRANSPARENT_PASS || irr_driver->getPhase() == SHADOW_PASS)
+            if (irr_driver->getPhase() == SOLID_NORMAL_AND_DEPTH_PASS || irr_driver->getPhase() == TRANSPARENT_PASS)
             {
                 glBindVertexArray(0);
-                glBindBuffer(GL_ARRAY_BUFFER, getVBO(mb->getVertexType()));
-                glBufferSubData(GL_ARRAY_BUFFER, GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride, mb->getVertexCount() * GLmeshes[i].Stride, mb->getVertices());
+                size_t size = mb->getVertexCount() * GLmeshes[i].Stride;
+                glBindBuffer(GL_ARRAY_BUFFER, VAOManager::getInstance()->getVBO(mb->getVertexType()));
+                GLbitfield bitfield = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
+                void * buf = glMapBufferRange(GL_ARRAY_BUFFER, GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride, size, bitfield);
+                memcpy(buf, mb->getVertices(), size);
+                glUnmapBuffer(GL_ARRAY_BUFFER);
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
@@ -141,16 +146,16 @@ void STKAnimatedMesh::render()
 
         GLMesh* mesh;
         for_in(mesh, MeshSolidMaterial[MAT_DEFAULT])
-            ListMatDefault::Arguments.emplace_back(mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix, irr_driver->getSceneManager()->getAmbientLight());
+            pushVector(AnimatedListMatDefault::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
 
         for_in(mesh, MeshSolidMaterial[MAT_ALPHA_REF])
-            ListMatAlphaRef::Arguments.emplace_back(mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix, irr_driver->getSceneManager()->getAmbientLight());
+            pushVector(AnimatedListMatAlphaRef::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
 
         for_in(mesh, MeshSolidMaterial[MAT_DETAIL])
-            ListMatDetails::Arguments.emplace_back(mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix, irr_driver->getSceneManager()->getAmbientLight());
+            pushVector(AnimatedListMatDetails::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
 
         for_in(mesh, MeshSolidMaterial[MAT_UNLIT])
-            ListMatUnlit::Arguments.emplace_back(mesh, AbsoluteTransformation, core::matrix4::EM4CONST_IDENTITY);
+            pushVector(AnimatedListMatUnlit::getInstance(), mesh, AbsoluteTransformation, core::matrix4::EM4CONST_IDENTITY, mesh->TextureMatrix);
 
         return;
     }
@@ -180,21 +185,21 @@ void STKAnimatedMesh::render()
                 tmpcol.getBlue() / 255.0f);
 
             for_in(mesh, TransparentMesh[TM_DEFAULT])
-                ListBlendTransparentFog::Arguments.push_back(
+                ListBlendTransparentFog::getInstance()->push_back(
                     STK::make_tuple(mesh, AbsoluteTransformation, mesh->TextureMatrix,
                                     fogmax, startH, endH, start, end, col));
             for_in(mesh, TransparentMesh[TM_ADDITIVE])
-                ListAdditiveTransparentFog::Arguments.push_back(
+                ListAdditiveTransparentFog::getInstance()->push_back(
                 STK::make_tuple(mesh, AbsoluteTransformation, mesh->TextureMatrix,
                                     fogmax, startH, endH, start, end, col));
         }
         else
         {
             for_in(mesh, TransparentMesh[TM_DEFAULT])
-                ListBlendTransparent::Arguments.emplace_back(mesh, AbsoluteTransformation, mesh->TextureMatrix);
+                pushVector(ListBlendTransparent::getInstance(), mesh, AbsoluteTransformation, mesh->TextureMatrix);
 
             for_in(mesh, TransparentMesh[TM_ADDITIVE])
-                ListAdditiveTransparent::Arguments.emplace_back(mesh, AbsoluteTransformation, mesh->TextureMatrix);
+                pushVector(ListAdditiveTransparent::getInstance(), mesh, AbsoluteTransformation, mesh->TextureMatrix);
         }
         return;
     }

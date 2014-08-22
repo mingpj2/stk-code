@@ -37,6 +37,8 @@
 #include "graphics/particle_emitter.hpp"
 #include "graphics/particle_kind.hpp"
 #include "graphics/particle_kind_manager.hpp"
+#include "graphics/stkinstancedscenenode.hpp"
+#include "graphics/stk_text_billboard.hpp"
 #include "guiengine/scalable_font.hpp"
 #include "io/file_manager.hpp"
 #include "io/xml_node.hpp"
@@ -268,7 +270,7 @@ void Track::cleanup()
 {
     QuadGraph::destroy();
     ItemManager::destroy();
-    resetVAO();
+    VAOManager::kill();
 
     ParticleKindManager::get()->cleanUpTrackSpecificGfx();
     // Clear reminder of transformed textures
@@ -423,14 +425,11 @@ void Track::cleanup()
         }
 #endif
     }   // if verbose
-
 }   // cleanup
 
 //-----------------------------------------------------------------------------
 void Track::loadTrackInfo()
 {
-    irr_driver->setLwhite(1.);
-    irr_driver->setExposure(0.09f);
     // Default values
     m_use_fog               = false;
     m_fog_max               = 1.0f;
@@ -446,6 +445,9 @@ void Track::loadTrackInfo()
     m_sun_specular_color    = video::SColor(255, 255, 255, 255);
     m_sun_diffuse_color     = video::SColor(255, 255, 255, 255);
     m_sun_position          = core::vector3df(0, 0, 0);
+    irr_driver->setSSAORadius(1.);
+    irr_driver->setSSAOK(1.5);
+    irr_driver->setSSAOSigma(1.);
     XMLNode *root           = file_manager->createXMLTree(m_filename);
 
     if(!root || root->getName()!="track")
@@ -485,10 +487,14 @@ void Track::loadTrackInfo()
     root->get("color-level-in",        &m_color_inlevel);
     root->get("color-level-out",       &m_color_outlevel);
 
+    if (m_default_number_of_laps <= 0)
+        m_default_number_of_laps = 3;
+    m_actual_number_of_laps = m_default_number_of_laps;
+
     // Make the default for auto-rescue in battle mode and soccer mode to be false
     if(m_is_arena || m_is_soccer)
         m_enable_auto_rescue = false;
-    root->get("auto-rescue",           & m_enable_auto_rescue);
+    root->get("auto-rescue",           &m_enable_auto_rescue);
     root->get("smooth-normals",        &m_smooth_normals);
     // Reverse is meaningless in arena
     if(m_is_arena || m_is_soccer)
@@ -727,9 +733,24 @@ void Track::convertTrackToBullet(scene::ISceneNode *node)
                       "This track contains an empty LOD group.");
             return;
         }
-        node->updateAbsolutePosition();
     }
     node->updateAbsolutePosition();
+
+    std::vector<core::matrix4> matrices;
+
+    STKInstancedSceneNode* instancing_node = dynamic_cast<STKInstancedSceneNode*>(node);
+    if (instancing_node != NULL)
+    {
+        int count = instancing_node->getInstanceCount();
+        for (int i = 0; i < count; i++)
+        {
+            matrices.push_back(instancing_node->getInstanceTransform(i));
+        }
+    }
+    else
+    {
+        matrices.push_back(node->getAbsoluteTransformation());
+    }
 
     const core::vector3df &pos   = node->getAbsolutePosition();
 
@@ -772,14 +793,15 @@ void Track::convertTrackToBullet(scene::ISceneNode *node)
             return;
     }   // switch node->getType()
 
-    core::matrix4 mat;
-    mat.setRotationDegrees(hpr);
-    mat.setTranslation(pos);
-    core::matrix4 mat_scale;
-    // Note that we can't simply call mat.setScale, since this would
-    // overwrite the elements on the diagonal, making any rotation incorrect.
-    mat_scale.setScale(scale);
-    mat *= mat_scale;
+    //core::matrix4 mat;
+    //mat.setRotationDegrees(hpr);
+    //mat.setTranslation(pos);
+    //core::matrix4 mat_scale;
+    //// Note that we can't simply call mat.setScale, since this would
+    //// overwrite the elements on the diagonal, making any rotation incorrect.
+    //mat_scale.setScale(scale);
+    //mat *= mat_scale;
+
     for(unsigned int i=0; i<mesh->getMeshBufferCount(); i++)
     {
         scene::IMeshBuffer *mb = mesh->getMeshBuffer(i);
@@ -833,59 +855,80 @@ void Track::convertTrackToBullet(scene::ISceneNode *node)
         if (mb->getVertexType() == video::EVT_STANDARD)
         {
             irr::video::S3DVertex* mbVertices=(video::S3DVertex*)mb->getVertices();
-            for(unsigned int j=0; j<mb->getIndexCount(); j+=3)
+            for (unsigned int matrix_index = 0; matrix_index < matrices.size(); matrix_index++)
             {
-                for(unsigned int k=0; k<3; k++)
+                for (unsigned int j = 0; j < mb->getIndexCount(); j += 3)
                 {
-                    int indx=mbIndices[j+k];
-                    core::vector3df v = mbVertices[indx].Pos;
-                    mat.transformVect(v);
-                    vertices[k]=v;
-                    normals[k]=mbVertices[indx].Normal;
-                }   // for k
-                if(tmesh) tmesh->addTriangle(vertices[0], vertices[1],
-                                             vertices[2], normals[0],
-                                             normals[1],  normals[2],
-                                             material                 );
-            }   // for j
+                    for (unsigned int k = 0; k < 3; k++)
+                    {
+                        int indx = mbIndices[j + k];
+                        core::vector3df v = mbVertices[indx].Pos;
+                        matrices[matrix_index].transformVect(v);
+                        vertices[k] = v;
+                        normals[k] = mbVertices[indx].Normal;
+                    }   // for k
+
+                    if (tmesh)
+                    {
+                        tmesh->addTriangle(vertices[0], vertices[1],
+                            vertices[2], normals[0],
+                            normals[1], normals[2],
+                            material);
+                    }
+                }   // for j
+            } // for matrix_index
         }
         else if (mb->getVertexType() == video::EVT_2TCOORDS)
         {
             irr::video::S3DVertex2TCoords* mbVertices = (video::S3DVertex2TCoords*)mb->getVertices();
-            for(unsigned int j=0; j<mb->getIndexCount(); j+=3)
+            for (unsigned int matrix_index = 0; matrix_index < matrices.size(); matrix_index++)
             {
-                for(unsigned int k=0; k<3; k++)
+                for (unsigned int j = 0; j < mb->getIndexCount(); j += 3)
                 {
-                    int indx=mbIndices[j+k];
-                    core::vector3df v = mbVertices[indx].Pos;
-                    mat.transformVect(v);
-                    vertices[k]=v;
-                    normals[k]=mbVertices[indx].Normal;
-                }   // for k
-                if(tmesh) tmesh->addTriangle(vertices[0], vertices[1],
-                                             vertices[2], normals[0],
-                                             normals[1],  normals[2],
-                                             material                 );
-            }   // for j
+                    for (unsigned int k = 0; k < 3; k++)
+                    {
+                        int indx = mbIndices[j + k];
+                        core::vector3df v = mbVertices[indx].Pos;
+                        matrices[matrix_index].transformVect(v);
+                        vertices[k] = v;
+                        normals[k] = mbVertices[indx].Normal;
+                    }   // for k
+
+                    if (tmesh)
+                    {
+                        tmesh->addTriangle(vertices[0], vertices[1],
+                            vertices[2], normals[0],
+                            normals[1], normals[2],
+                            material);
+                    }
+                }   // for j
+            } // for matrix_index
         }
         else if (mb->getVertexType() == video::EVT_TANGENTS)
         {
             irr::video::S3DVertexTangents* mbVertices = (video::S3DVertexTangents*)mb->getVertices();
-            for(unsigned int j=0; j<mb->getIndexCount(); j+=3)
+            for (unsigned int matrix_index = 0; matrix_index < matrices.size(); matrix_index++)
             {
-                for(unsigned int k=0; k<3; k++)
+                for (unsigned int j = 0; j < mb->getIndexCount(); j += 3)
                 {
-                    int indx=mbIndices[j+k];
-                    core::vector3df v = mbVertices[indx].Pos;
-                    mat.transformVect(v);
-                    vertices[k]=v;
-                    normals[k]=mbVertices[indx].Normal;
-                }   // for k
-                if(tmesh) tmesh->addTriangle(vertices[0], vertices[1],
-                                             vertices[2], normals[0],
-                                             normals[1],  normals[2],
-                                             material                 );
-            }   // for j
+                    for (unsigned int k = 0; k < 3; k++)
+                    {
+                        int indx = mbIndices[j + k];
+                        core::vector3df v = mbVertices[indx].Pos;
+                        matrices[matrix_index].transformVect(v);
+                        vertices[k] = v;
+                        normals[k] = mbVertices[indx].Normal;
+                    }   // for k
+
+                    if (tmesh)
+                    {
+                        tmesh->addTriangle(vertices[0], vertices[1],
+                            vertices[2], normals[0],
+                            normals[1], normals[2],
+                            material);
+                    }
+                }   // for j
+            } // for matrix_index
         }
 
     }   // for i<getMeshBufferCount
@@ -1102,19 +1145,33 @@ bool Track::loadMainTrack(const XMLNode &root)
 
             assert(GUIEngine::getHighresDigitFont() != NULL);
 
-            // TODO: Add support in the engine for BillboardText or find a replacement
-/*          scene::ISceneManager* sm = irr_driver->getSceneManager();
-            scene::ISceneNode* sn =
-                sm->addBillboardTextSceneNode(GUIEngine::getHighresDigitFont(),
-                                              msg.c_str(),
-                                              NULL,
-                                              core::dimension2df(textsize.Width/45.0f,
-                                                                 textsize.Height/45.0f),
-                                              xyz,
-                                              -1, // id
-                                              video::SColor(255, 255, 225, 0),
-                                              video::SColor(255, 255, 89, 0));
-            m_all_nodes.push_back(sn);*/
+            if (irr_driver->isGLSL())
+            {
+                gui::ScalableFont* font = GUIEngine::getHighresDigitFont();
+                STKTextBillboard* tb = new STKTextBillboard(msg.c_str(), font,
+                    video::SColor(255, 255, 225, 0),
+                    video::SColor(255, 255, 89, 0),
+                    irr_driver->getSceneManager()->getRootSceneNode(),
+                    irr_driver->getSceneManager(), -1, xyz,
+                    core::vector3df(1.5f, 1.5f, 1.5f));
+                m_all_nodes.push_back(tb);
+            }
+            else
+            {
+                scene::ISceneManager* sm = irr_driver->getSceneManager();
+                scene::ISceneNode* sn =
+                    sm->addBillboardTextSceneNode(GUIEngine::getHighresDigitFont(),
+                    msg.c_str(),
+                    NULL,
+                    core::dimension2df(textsize.Width / 35.0f,
+                    textsize.Height / 35.0f),
+                    xyz,
+                    -1, // id
+                    video::SColor(255, 255, 225, 0),
+                    video::SColor(255, 255, 89, 0));
+                m_all_nodes.push_back(sn);
+            }
+
             if (!shown) continue;
         }
         else if (condition == "allchallenges")
@@ -1962,11 +2019,15 @@ void Track::loadObjects(const XMLNode* root, const std::string& path, ModelDefin
             }
 
             scene::ISceneNode* parent = irr_driver->getSceneManager()->addEmptySceneNode();
+#ifdef DEBUG
+            parent->setName(("libnode_" + name).c_str());
+#endif
             parent->setPosition(xyz);
             parent->setRotation(hpr);
             parent->setScale(scale);
             parent->updateAbsolutePosition();
             loadObjects(libroot, lib_path, model_def_loader, create_lod_definitions, parent, library_nodes);
+            //m_all_nodes.push_back(parent);
         }
         else if (name == "water")
         {

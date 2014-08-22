@@ -29,7 +29,8 @@ else()
 endif()
 
 if(UNIX AND NOT APPLE)
-    option(USE_XRANDR "Use xrandr instead of vidmode" OFF)
+    option(USE_XRANDR "Use xrandr instead of vidmode" ON)
+    option(USE_ASAN   "Build with Leak/Address sanitizer" OFF)
 endif()
 
 set(STK_SOURCE_DIR "src")
@@ -135,6 +136,9 @@ include_directories(${OPENGL_INCLUDE_DIR})
 if(UNIX AND NOT APPLE)
     if(USE_XRANDR)
         find_package(Xrandr REQUIRED)
+        if(NOT XRANDR_FOUND)
+            message(FATAL_ERROR "XRANDR not found.")
+        endif()
     else()
         find_library(IRRLICHT_XF86VM_LIBRARY Xxf86vm)
         mark_as_advanced(IRRLICHT_XF86VM_LIBRARY)
@@ -169,6 +173,9 @@ endif()
 # TODO: remove this switch
 add_definitions(-DHAVE_OGGVORBIS)
 
+if(WIN32)
+    configure_file("${STK_SOURCE_DIR}/windows_installer/icon_rc.template" "${PROJECT_BINARY_DIR}/tmp/icon.rc")
+endif()
 
 # Provides list of source and header files (STK_SOURCES and STK_HEADERS)
 include(sources.cmake)
@@ -224,7 +231,7 @@ else()
     endif()
 
     # Build the final executable
-    add_executable(supertuxkart ${STK_SOURCES} ${STK_HEADERS})
+    add_executable(supertuxkart ${STK_SOURCES} ${STK_RESOURCES} ${STK_HEADERS})
     target_link_libraries(supertuxkart ${PTHREAD_LIBRARY})
 endif()
 
@@ -253,6 +260,11 @@ if(UNIX AND NOT APPLE)
         target_link_libraries(supertuxkart ${XRANDR_LIBRARIES})
     else()
         target_link_libraries(supertuxkart ${IRRLICHT_XF86VM_LIBRARY})
+    endif()
+    if(USE_ASAN)
+        add_definitions("-fsanitize=address")
+        add_definitions("-fno-omit-frame-pointer")
+        target_link_libraries(supertuxkart "-fsanitize=address")
     endif()
 endif()
 
@@ -359,7 +371,6 @@ endif()
 install(FILES ${PROJECT_BINARY_DIR}/supertuxkart.desktop DESTINATION share/applications)
 install(FILES data/supertuxkart_32.png data/supertuxkart_128.png DESTINATION share/pixmaps)
 install(FILES data/supertuxkart.appdata DESTINATION share/appdata)
-
 
 set(PREFIX ${CMAKE_INSTALL_PREFIX})
 configure_file(data/supertuxkart_desktop.template supertuxkart.desktop)

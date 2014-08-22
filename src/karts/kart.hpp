@@ -102,6 +102,10 @@ private:
     /** Current race position (1-num_karts). */
     int m_race_position;
 
+    /** The coordinates of the front of the kart, used to determine when a
+     *  new lap is triggered. */
+    Vec3 m_xyz_front;
+
     /** True if the kart is eliminated. */
     bool m_eliminated;
 
@@ -112,8 +116,12 @@ private:
      *  determine startup boost. */
     bool         m_has_started;
 
-    /**<Maximum engine rpm's for the current gear*/
+    /** Maximum engine rpm's for the current gear. */
     float        m_max_gear_rpm;
+
+    /** How long the brake key has been pressed - the longer the harder
+     *  the kart will brake. */
+    float        m_brake_time;
 
     /** A short time after a collision acceleration is disabled to allow
      *  the karts to bounce back*/
@@ -291,6 +299,10 @@ public:
     // ------------------------------------------------------------------------
     /** Returns the current position of this kart in the race. */
     virtual int    getPosition         () const { return m_race_position;    }
+    // ------------------------------------------------------------------------
+    /** Returns the coordinates of the front of the kart. This is used for
+     *  determining when the lap line is crossed. */
+    virtual const Vec3& getFrontXYZ() const { return m_xyz_front; }
     // ------------------------------------------------------------------------
     /** Returns the initial position of this kart. */
     virtual int    getInitialPosition  () const { return m_initial_position; }

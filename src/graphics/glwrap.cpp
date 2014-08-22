@@ -3,6 +3,7 @@
 #include <string>
 #include "config/user_config.hpp"
 #include "utils/profiler.hpp"
+#include "utils/cpp2011.hpp"
 
 #ifdef _IRR_WINDOWS_API_
 #define IRR_OGL_LOAD_EXTENSION(X) wglGetProcAddress(reinterpret_cast<const char*>(X))
@@ -24,6 +25,7 @@ PFNGLCREATEPROGRAMPROC glCreateProgram;
 PFNGLATTACHSHADERPROC glAttachShader;
 PFNGLLINKPROGRAMPROC glLinkProgram;
 PFNGLUSEPROGRAMPROC glUseProgram;
+PFNGLDELETEPROGRAMPROC glDeleteProgram;
 PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
 PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
 PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
@@ -56,6 +58,11 @@ PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
 PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
 PFNGLTEXBUFFERPROC glTexBuffer;
 PFNGLBUFFERSUBDATAPROC glBufferSubData;
+PFNGLMAPBUFFERPROC glMapBuffer;
+PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+PFNGLUNMAPBUFFERPROC glUnmapBuffer;
+PFNGLFENCESYNCPROC glFenceSync;
+PFNGLCLIENTWAITSYNCPROC glClientWaitSync;
 PFNGLVERTEXATTRIBIPOINTERPROC glVertexAttribIPointer;
 PFNGLDEBUGMESSAGECALLBACKARBPROC glDebugMessageCallbackARB;
 PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
@@ -78,6 +85,12 @@ PFNGLTEXSTORAGE2DPROC glTexStorage2D;
 PFNGLTEXSTORAGE3DPROC glTexStorage3D;
 PFNGLBINDIMAGETEXTUREPROC glBindImageTexture;
 PFNGLDISPATCHCOMPUTEPROC glDispatchCompute;
+PFNGLGENSAMPLERSPROC glGenSamplers;
+PFNGLDELETESAMPLERSPROC glDeleteSamplers;
+PFNGLBINDSAMPLERPROC glBindSampler;
+PFNGLSAMPLERPARAMETERFPROC glSamplerParameterf;
+PFNGLSAMPLERPARAMETERIPROC glSamplerParameteri;
+PFNGLGETSTRINGIPROC glGetStringi;
 #endif
 
 static bool is_gl_init = false;
@@ -96,6 +109,10 @@ CALLBACK
 debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
               const GLchar* msg, const void *userparam)
 {
+    // ignore minor notifications sent by some drivers (notably the nvidia one)
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+        return;
+
     switch(source)
     {
     case GL_DEBUG_SOURCE_API_ARB:
@@ -173,6 +190,11 @@ void initGL()
     glGenBuffers = (PFNGLGENBUFFERSPROC)IRR_OGL_LOAD_EXTENSION("glGenBuffers");
     glBindBuffer = (PFNGLBINDBUFFERPROC)IRR_OGL_LOAD_EXTENSION("glBindBuffer");
     glBufferData = (PFNGLBUFFERDATAPROC)IRR_OGL_LOAD_EXTENSION("glBufferData");
+    glMapBuffer = (PFNGLMAPBUFFERPROC)IRR_OGL_LOAD_EXTENSION("glMapBuffer");
+    glMapBufferRange = (PFNGLMAPBUFFERRANGEPROC)IRR_OGL_LOAD_EXTENSION("glMapBufferRange");
+    glUnmapBuffer = (PFNGLUNMAPBUFFERPROC)IRR_OGL_LOAD_EXTENSION("glUnmapBuffer");
+    glFenceSync = (PFNGLFENCESYNCPROC)IRR_OGL_LOAD_EXTENSION("glFenceSync");
+    glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC)IRR_OGL_LOAD_EXTENSION("glClientWaitSync");
     glVertexAttribPointer = (PFNGLVERTEXATTRIBPOINTERPROC)IRR_OGL_LOAD_EXTENSION("glVertexAttribPointer");
     glCreateShader = (PFNGLCREATESHADERPROC)IRR_OGL_LOAD_EXTENSION("glCreateShader");
     glCompileShader = (PFNGLCOMPILESHADERPROC)IRR_OGL_LOAD_EXTENSION("glCompileShader");
@@ -181,6 +203,7 @@ void initGL()
     glAttachShader = (PFNGLATTACHSHADERPROC)IRR_OGL_LOAD_EXTENSION("glAttachShader");
     glLinkProgram = (PFNGLLINKPROGRAMPROC)IRR_OGL_LOAD_EXTENSION("glLinkProgram");
     glUseProgram = (PFNGLUSEPROGRAMPROC)IRR_OGL_LOAD_EXTENSION("glUseProgram");
+    glDeleteProgram = (PFNGLDELETEPROGRAMPROC)IRR_OGL_LOAD_EXTENSION("glDeleteProgram");
     glEnableVertexAttribArray = (PFNGLENABLEVERTEXATTRIBARRAYPROC)IRR_OGL_LOAD_EXTENSION("glEnableVertexAttribArray");
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)IRR_OGL_LOAD_EXTENSION("glGetUniformLocation");
     glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)IRR_OGL_LOAD_EXTENSION("glUniformMatrix4fv");
@@ -235,6 +258,12 @@ void initGL()
     glTexStorage3D = (PFNGLTEXSTORAGE3DPROC)IRR_OGL_LOAD_EXTENSION("glTexStorage3D");
     glBindImageTexture = (PFNGLBINDIMAGETEXTUREPROC)IRR_OGL_LOAD_EXTENSION("glBindImageTexture");
     glDispatchCompute = (PFNGLDISPATCHCOMPUTEPROC)IRR_OGL_LOAD_EXTENSION("glDispatchCompute");
+    glGenSamplers = (PFNGLGENSAMPLERSPROC)IRR_OGL_LOAD_EXTENSION("glGenSamplers");
+    glDeleteSamplers = (PFNGLDELETESAMPLERSPROC)IRR_OGL_LOAD_EXTENSION("glDeleteSamplers");
+    glBindSampler = (PFNGLBINDSAMPLERPROC)IRR_OGL_LOAD_EXTENSION("glBindSampler");
+    glSamplerParameterf = (PFNGLSAMPLERPARAMETERFPROC)IRR_OGL_LOAD_EXTENSION("glSamplerParameterf");
+    glSamplerParameteri = (PFNGLSAMPLERPARAMETERIPROC)IRR_OGL_LOAD_EXTENSION("glSamplerParameteri");
+    glGetStringi = (PFNGLGETSTRINGIPROC)IRR_OGL_LOAD_EXTENSION("glGetstringi");
 #ifdef DEBUG
     glDebugMessageCallbackARB = (PFNGLDEBUGMESSAGECALLBACKARBPROC)IRR_OGL_LOAD_EXTENSION("glDebugMessageCallbackARB");
 #endif
@@ -243,6 +272,22 @@ void initGL()
     if (glDebugMessageCallbackARB)
         glDebugMessageCallbackARB((GLDEBUGPROCARB)debugCallback, NULL);
 #endif
+}
+
+static std::string LoadHeader()
+{
+    std::string result;
+    std::ifstream Stream(file_manager->getAsset("shaders/header.txt").c_str(), std::ios::in);
+
+    if (Stream.is_open())
+    {
+        std::string Line = "";
+        while (getline(Stream, Line))
+            result += "\n" + Line;
+        Stream.close();
+    }
+
+    return result;
 }
 
 // Mostly from shader tutorial
@@ -254,10 +299,11 @@ GLuint LoadShader(const char * file, unsigned type)
     std::string Code = versionString;
     std::ifstream Stream(file, std::ios::in);
     Code += "//" + std::string(file) + "\n";
-    if (UserConfigParams::m_ubo_disabled)
+    if (irr_driver->needUBOWorkaround())
         Code += "#define UBO_DISABLED\n";
     if (irr_driver->hasVSLayerExtension())
         Code += "#define VSLayer\n";
+    Code += LoadHeader();
     if (Stream.is_open())
     {
         std::string Line = "";
@@ -508,40 +554,7 @@ void setTexture(unsigned TextureUnit, GLuint TextureId, GLenum MagFilter, GLenum
     glGetError();
 }
 
-class VBOGatherer
-{
-    enum VTXTYPE { VTXTYPE_STANDARD, VTXTYPE_TCOORD, VTXTYPE_TANGENT, VTXTYPE_COUNT };
-    GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT], vao[VTXTYPE_COUNT];
-    std::vector<scene::IMeshBuffer *> storedCPUBuffer[VTXTYPE_COUNT];
-    void *vtx_mirror[VTXTYPE_COUNT], *idx_mirror[VTXTYPE_COUNT];
-    size_t vtx_cnt[VTXTYPE_COUNT], idx_cnt[VTXTYPE_COUNT];
-    std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
-
-    void regenerateBuffer(enum VTXTYPE);
-    void regenerateVAO(enum VTXTYPE);
-    size_t getVertexPitch(enum VTXTYPE) const;
-    VTXTYPE getVTXTYPE(video::E_VERTEX_TYPE type);
-    void append(scene::IMeshBuffer *, VBOGatherer::VTXTYPE tp);
-public:
-    VBOGatherer();
-    std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
-    unsigned getVBO(video::E_VERTEX_TYPE type) { return vbo[getVTXTYPE(type)]; }
-    unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
-    ~VBOGatherer()
-    {
-        for (unsigned i = 0; i < VTXTYPE_COUNT; i++)
-        {
-            if (vbo[i])
-                glDeleteBuffers(1, &vbo[i]);
-            if (ibo[i])
-                glDeleteBuffers(1, &ibo[i]);
-            if (vao[i])
-                glDeleteVertexArrays(1, &vao[i]);
-        }
-    }
-};
-
-VBOGatherer::VBOGatherer()
+VAOManager::VAOManager()
 {
     vao[0] = vao[1] = vao[2] = 0;
     vbo[0] = vbo[1] = vbo[2] = 0;
@@ -552,26 +565,44 @@ VBOGatherer::VBOGatherer()
     idx_mirror[0] = idx_mirror[1] = idx_mirror[2] = NULL;
 }
 
-void VBOGatherer::regenerateBuffer(enum VTXTYPE tp)
+VAOManager::~VAOManager()
+{
+    for (unsigned i = 0; i < 3; i++)
+    {
+        if (vtx_mirror[i])
+            free(vtx_mirror[i]);
+        if (idx_mirror[i])
+            free(idx_mirror[i]);
+        if (vbo[i])
+            glDeleteBuffers(1, &vbo[i]);
+        if (ibo[i])
+            glDeleteBuffers(1, &ibo[i]);
+        if (vao[i])
+            glDeleteVertexArrays(1, &vao[i]);
+    }
+
+}
+
+void VAOManager::regenerateBuffer(enum VTXTYPE tp)
 {
     glBindVertexArray(0);
     if (vbo[tp])
         glDeleteBuffers(1, &vbo[tp]);
     glGenBuffers(1, &vbo[tp]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[tp]);
-    glBufferData(GL_ARRAY_BUFFER, vtx_cnt[tp] * getVertexPitch(tp), vtx_mirror[tp], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vtx_cnt[tp] * getVertexPitch(tp), vtx_mirror[tp], GL_DYNAMIC_DRAW);
 
     if (ibo[tp])
         glDeleteBuffers(1, &ibo[tp]);
     glGenBuffers(1, &ibo[tp]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo[tp]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u16)* idx_cnt[tp], idx_mirror[tp], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(u16)* idx_cnt[tp], idx_mirror[tp], GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
+void VAOManager::regenerateVAO(enum VTXTYPE tp)
 {
     if (vao[tp])
         glDeleteVertexArrays(1, &vao[tp]);
@@ -637,7 +668,7 @@ void VBOGatherer::regenerateVAO(enum VTXTYPE tp)
     glBindVertexArray(0);
 }
 
-size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
+size_t VAOManager::getVertexPitch(enum VTXTYPE tp) const
 {
     switch (tp)
     {
@@ -653,22 +684,22 @@ size_t VBOGatherer::getVertexPitch(enum VTXTYPE tp) const
     }
 }
 
-VBOGatherer::VTXTYPE VBOGatherer::getVTXTYPE(video::E_VERTEX_TYPE type)
+VAOManager::VTXTYPE VAOManager::getVTXTYPE(video::E_VERTEX_TYPE type)
 {
     switch (type)
     {
+    default:
+        assert(0 && "Wrong vtxtype");
     case video::EVT_STANDARD:
         return VTXTYPE_STANDARD;
     case video::EVT_2TCOORDS:
         return VTXTYPE_TCOORD;
     case video::EVT_TANGENTS:
         return VTXTYPE_TANGENT;
-    default:
-        assert(0 && "Wrong vtxtype");
     }
 };
 
-void VBOGatherer::append(scene::IMeshBuffer *mb, VBOGatherer::VTXTYPE tp)
+void VAOManager::append(scene::IMeshBuffer *mb, VTXTYPE tp)
 {
     size_t old_vtx_cnt = vtx_cnt[tp];
     vtx_cnt[tp] += mb->getVertexCount();
@@ -686,7 +717,7 @@ void VBOGatherer::append(scene::IMeshBuffer *mb, VBOGatherer::VTXTYPE tp)
     mappedBaseIndex[tp][mb] = old_idx_cnt * sizeof(u16);
 }
 
-std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
+std::pair<unsigned, unsigned> VAOManager::getBase(scene::IMeshBuffer *mb)
 {
     VTXTYPE tp = getVTXTYPE(mb->getVertexType());
     if (mappedBaseVertex[tp].find(mb) == mappedBaseVertex[tp].end())
@@ -705,36 +736,6 @@ std::pair<unsigned, unsigned> VBOGatherer::getBase(scene::IMeshBuffer *mb)
     It = mappedBaseIndex[tp].find(mb);
     assert(It != mappedBaseIndex[tp].end());
     return std::pair<unsigned, unsigned>(vtx, It->second);
-}
-
-static VBOGatherer *gatherersingleton = 0;
-
-std::pair<unsigned, unsigned> getVAOOffsetAndBase(scene::IMeshBuffer *mb)
-{
-    if (!gatherersingleton)
-        gatherersingleton = new VBOGatherer();
-    return gatherersingleton->getBase(mb);
-}
-
-unsigned getVBO(video::E_VERTEX_TYPE type)
-{
-    if (gatherersingleton)
-        return gatherersingleton->getVBO(type);
-    return 0;
-}
-
-unsigned getVAO(video::E_VERTEX_TYPE type)
-{
-    if (gatherersingleton)
-        return gatherersingleton->getVAO(type);
-    return 0;
-}
-
-void resetVAO()
-{
-    if (gatherersingleton)
-        delete gatherersingleton;
-    gatherersingleton = 0;
 }
 
 ScopedGPUTimer::ScopedGPUTimer(GPUTimer &timer)
@@ -887,14 +888,16 @@ static void drawTexColoredQuad(const video::ITexture *texture, const video::SCol
         col[3].getRed(), col[3].getGreen(), col[3].getBlue(), col[3].getAlpha(),
     };
 
-    glBindBuffer(GL_ARRAY_BUFFER, UIShader::ColoredTextureRectShader::colorvbo);
+    glBindBuffer(GL_ARRAY_BUFFER, UIShader::ColoredTextureRectShader::getInstance()->colorvbo);
     glBufferSubData(GL_ARRAY_BUFFER, 0, 16 * sizeof(unsigned), colors);
 
-    glUseProgram(UIShader::ColoredTextureRectShader::Program);
-    glBindVertexArray(UIShader::ColoredTextureRectShader::vao);
+    glUseProgram(UIShader::ColoredTextureRectShader::getInstance()->Program);
+    glBindVertexArray(UIShader::ColoredTextureRectShader::getInstance()->vao);
 
-    setTexture(0, static_cast<const irr::video::COpenGLTexture*>(texture)->getOpenGLTextureName(), GL_LINEAR, GL_LINEAR);
-    UIShader::TextureRectShader::setUniforms(center_pos_x, center_pos_y, width, height, tex_center_pos_x, tex_center_pos_y, tex_width, tex_height, 0);
+    UIShader::ColoredTextureRectShader::getInstance()->SetTextureUnits(createVector<GLuint>(static_cast<const irr::video::COpenGLTexture*>(texture)->getOpenGLTextureName()));
+    UIShader::ColoredTextureRectShader::getInstance()->setUniforms(
+        core::vector2df(center_pos_x, center_pos_y), core::vector2df(width, height),
+        core::vector2df(tex_center_pos_x, tex_center_pos_y), core::vector2df(tex_width, tex_height));
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -908,11 +911,14 @@ void drawTexQuad(GLuint texture, float width, float height,
                  float center_pos_x, float center_pos_y, float tex_center_pos_x, float tex_center_pos_y,
                  float tex_width, float tex_height)
 {
-    glUseProgram(UIShader::TextureRectShader::Program);
-    glBindVertexArray(UIShader::TextureRectShader::vao);
+    glUseProgram(UIShader::TextureRectShader::getInstance()->Program);
+    glBindVertexArray(SharedObject::UIVAO);
 
-    setTexture(0, texture, GL_LINEAR, GL_LINEAR);
-    UIShader::TextureRectShader::setUniforms(center_pos_x, center_pos_y, width, height, tex_center_pos_x, tex_center_pos_y, tex_width, tex_height, 0);
+    UIShader::TextureRectShader::getInstance()->SetTextureUnits(createVector<GLuint>(texture));
+    UIShader::TextureRectShader::getInstance()->setUniforms(
+        core::vector2df(center_pos_x, center_pos_y), core::vector2df(width, height),
+        core::vector2df(tex_center_pos_x, tex_center_pos_y),
+        core::vector2df(tex_width, tex_height));
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -1008,11 +1014,12 @@ void draw2DImage(const video::ITexture* texture, const core::rect<s32>& destRect
                   clipRect->getWidth(), clipRect->getHeight());
     }
 
-    glUseProgram(UIShader::UniformColoredTextureRectShader::Program);
-    glBindVertexArray(UIShader::UniformColoredTextureRectShader::vao);
+    glUseProgram(UIShader::UniformColoredTextureRectShader::getInstance()->Program);
+    glBindVertexArray(SharedObject::UIVAO);
 
-    setTexture(0, static_cast<const irr::video::COpenGLTexture*>(texture)->getOpenGLTextureName(), GL_LINEAR, GL_LINEAR);
-    UIShader::UniformColoredTextureRectShader::setUniforms(center_pos_x, center_pos_y, width, height, tex_center_pos_x, tex_center_pos_y, tex_width, tex_height,colors, 0);
+    UIShader::UniformColoredTextureRectShader::getInstance()->SetTextureUnits(createVector<GLuint>(static_cast<const irr::video::COpenGLTexture*>(texture)->getOpenGLTextureName()));
+    UIShader::UniformColoredTextureRectShader::getInstance()->setUniforms(
+        core::vector2df(center_pos_x, center_pos_y), core::vector2df(width, height), core::vector2df(tex_center_pos_x, tex_center_pos_y), core::vector2df(tex_width, tex_height), colors);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -1043,11 +1050,14 @@ void draw2DImageFromRTT(GLuint texture, size_t texture_w, size_t texture_h,
         destRect, sourceRect, width, height, center_pos_x, center_pos_y,
         tex_width, tex_height, tex_center_pos_x, tex_center_pos_y);
 
-    glUseProgram(UIShader::UniformColoredTextureRectShader::Program);
-    glBindVertexArray(UIShader::UniformColoredTextureRectShader::vao);
+    glUseProgram(UIShader::UniformColoredTextureRectShader::getInstance()->Program);
+    glBindVertexArray(SharedObject::UIVAO);
 
-    setTexture(0, texture, GL_LINEAR, GL_LINEAR);
-    UIShader::UniformColoredTextureRectShader::setUniforms(center_pos_x, center_pos_y, width, height, tex_center_pos_x, tex_center_pos_y, tex_width, tex_height, colors, 0);
+    UIShader::UniformColoredTextureRectShader::getInstance()->SetTextureUnits(createVector<GLuint>(texture));
+    UIShader::UniformColoredTextureRectShader::getInstance()->setUniforms(
+        core::vector2df(center_pos_x, center_pos_y), core::vector2df(width, height),
+        core::vector2df(tex_center_pos_x, tex_center_pos_y), core::vector2df(tex_width, tex_height),
+        colors);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
@@ -1151,9 +1161,9 @@ void GL32_draw2DRectangle(video::SColor color, const core::rect<s32>& position,
                   clip->getWidth(), clip->getHeight());
     }
 
-    glUseProgram(UIShader::ColoredRectShader::Program);
-    glBindVertexArray(UIShader::ColoredRectShader::vao);
-    UIShader::ColoredRectShader::setUniforms(center_pos_x, center_pos_y, width, height, color);
+    glUseProgram(UIShader::ColoredRectShader::getInstance()->Program);
+    glBindVertexArray(SharedObject::UIVAO);
+    UIShader::ColoredRectShader::getInstance()->setUniforms(core::vector2df(center_pos_x, center_pos_y), core::vector2df(width, height), color);
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -1163,4 +1173,31 @@ void GL32_draw2DRectangle(video::SColor color, const core::rect<s32>& position,
     glUseProgram(0);
 
     glGetError();
+}
+
+bool hasGLExtension(const char* extension) 
+{
+    if (glGetStringi != NULL)
+    {
+        GLint numExtensions = 0;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+        for (GLint i = 0; i < numExtensions; i++)
+        {
+            const char* foundExtension =
+                (const char*) glGetStringi(GL_EXTENSIONS, i);
+            if (foundExtension && strcmp(foundExtension, extension) == 0)
+            {
+                return true;
+            }
+        }
+    }
+    else
+    {
+        const char* extensions = (const char*) glGetString(GL_EXTENSIONS);
+        if (extensions && strstr(extensions, extension) != NULL)
+        {
+            return true;
+        }
+    }
+    return false;
 }
