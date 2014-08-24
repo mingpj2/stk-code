@@ -1,0 +1,372 @@
+
+git log --graph fcb80cd^..6a48010 --stat
+
+* commit 6a48010644855bfff57efa3a95513f427101d52f
+| Author: Deve <deveee@gmail.com>
+| Date:   Wed Aug 20 06:49:01 2014 +0200
+| 
+|     Fixed compilation error with disabled xrandr
+| 
+|  lib/irrlicht/source/Irrlicht/CIrrDeviceLinux.cpp | 1 -
+|  1 file changed, 1 deletion(-)
+|  
+* commit 6b3786457f5881a752de04150f964de7d4c0398d
+| Author: Stephen Just <stephenjust@gmail.com>
+| Date:   Tue Aug 19 16:08:27 2014 -0600
+| 
+|     Fix OpenGL extension detection on Linux/Mesa.
+|     
+|     Created function in glwrap to test whether a GL extension is available.
+|     This required using OpenGL3's glGetStringi. Backwards compat code can
+|     be added to function if necessary.
+| 
+|  src/graphics/glwrap.cpp     | 16 ++++++++++++++++
+|  src/graphics/glwrap.hpp     |  3 +++
+|  src/graphics/irr_driver.cpp |  6 +++---
+|  3 files changed, 22 insertions(+), 3 deletions(-)
+|    
+*   commit 160d4ae432f537c9b4a828714d2eb18a6ca0f1e8
+|\  Merge: 2a473a5 fc945a4
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:54:54 2014 +0200
+| | 
+| |     Merge branch 'texture-factorization'
+| |   
+| * commit fc945a429f79cb838721670336fdf3ba105a68af
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:46:48 2014 +0200
+| | 
+| |     Another place found
+| | 
+| |  src/graphics/stkbillboard.cpp | 2 +-
+| |  1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+| * commit d11d56f6cd18dafe016245f853e163838c5df75b
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:42:59 2014 +0200
+| | 
+| |     Replace std::vector<GLuint>{...} in post_processing
+| | 
+| |  src/graphics/post_processing.cpp | 36 ++++++++++++++++++------------------
+| |  1 file changed, 18 insertions(+), 18 deletions(-)
+| |   
+| * commit 7de6b7adcd7095e4dda9b77a21127518f3abbce5
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:21:34 2014 +0200
+| | 
+| |     Use createVector in others places
+| | 
+| |  src/graphics/glwrap.cpp | 9 +++++----
+| |  1 file changed, 5 insertions(+), 4 deletions(-)
+| |   
+| * commit 4197e2c320dd1f50cdf4b1ad70d80b8781f0c02c
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:05:16 2014 +0200
+| | 
+| |     Another ifdef sets...
+| | 
+| |  src/states_screens/dialogs/debug_slider.cpp | 4 ++++
+| |  1 file changed, 4 insertions(+)
+| |   
+| * commit 5559a9fd1daff52f9b23c235494cb49899a63d16
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 02:02:34 2014 +0200
+| | 
+| |     Add some #if !defined(APPLE) in debug screen
+| | 
+| |  src/states_screens/dialogs/debug_slider.cpp | 2 ++
+| |  src/states_screens/dialogs/debug_slider.hpp | 5 ++++-
+| |  src/utils/debug.cpp                         | 4 ++--
+| |  3 files changed, 8 insertions(+), 3 deletions(-)
+| |   
+| * commit b3e6ed03b1241452b69aca036a774a16e8c5c2da
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:56:16 2014 +0200
+| | 
+| |     Use VERSION_3_3 macro
+| | 
+| |  src/graphics/render_geometry.cpp |  6 +++---
+| |  src/graphics/shaders.cpp         | 14 +++++++-------
+| |  2 files changed, 10 insertions(+), 10 deletions(-)
+| |   
+| * commit af4fdaf96b144e55b2ffb2db0050d797dff0d579
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:56:04 2014 +0200
+| | 
+| |     Add "functionnal" include in debug.cpp
+| | 
+| |  src/utils/debug.cpp | 3 +++
+| |  1 file changed, 3 insertions(+)
+| |   
+| * commit 953dd9db0ddeb7f6eb1bdb6c7c375a85eda7ef54
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:48:20 2014 +0200
+| | 
+| |     Put some others bunch of code between ifdef win32
+| | 
+| |  src/graphics/shaders.cpp | 12 ++++++++++++
+| |  1 file changed, 12 insertions(+)
+| |     
+| *   commit ffd558e5773d2ab1d992356cde648c800298217b
+| |\  Merge: 5788073 ef95f57
+| | | Author: Marianne Gagnon <auria.mg@gmail.com>
+| | | Date:   Tue Aug 19 19:45:24 2014 -0400
+| | | 
+| | |     Merge branch 'texture-factorization' of https://github.com/supertuxkart/stk-code into texture-factorization
+| | |     
+| | |     Conflicts:
+| | |     	src/graphics/post_processing.cpp
+| | |    
+| | * commit ef95f5703a674588ace45cba5cdcda7b80912c8d
+| | | Author: vlj <vljn@ovi.com>
+| | | Date:   Wed Aug 20 01:37:50 2014 +0200
+| | | 
+| | |     Add createVector in another place.
+| | | 
+| | |  src/graphics/post_processing.cpp | 4 ++--
+| | |  1 file changed, 2 insertions(+), 2 deletions(-)
+| | |    
+| * | commit 5788073b17ab9b4bc5dbbf8499bf4b519497a2b9
+| |/  Author: Marianne Gagnon <auria.mg@gmail.com>
+| |   Date:   Tue Aug 19 19:44:27 2014 -0400
+| |   
+| |       osx fixes
+| |   
+| |    src/graphics/post_processing.cpp | 4 ++--
+| |    src/graphics/render_geometry.cpp | 5 ++++-
+| |    src/graphics/render_lighting.cpp | 8 +++++++-
+| |    3 files changed, 13 insertions(+), 4 deletions(-)
+| |   
+| * commit d0e22164d51569ce4edb8befd25e46d278738278
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:31:11 2014 +0200
+| | 
+| |     Add some ifdef for OSX
+| | 
+| |  src/graphics/render_geometry.cpp | 15 ++++++++++++---
+| |  src/graphics/shaders.cpp         |  2 ++
+| |  2 files changed, 14 insertions(+), 3 deletions(-)
+| |   
+| * commit 190aed62193dd6b54dfc4219113d40a4165ec1b9
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:27:26 2014 +0200
+| | 
+| |     Use createVector in some others places
+| | 
+| |  src/graphics/post_processing.cpp | 2 +-
+| |  src/graphics/render_geometry.cpp | 2 +-
+| |  src/utils/cpp2011.hpp            | 2 +-
+| |  3 files changed, 3 insertions(+), 3 deletions(-)
+| |   
+| * commit a28f4d26b46f64d1e50824e79a81a5fb5d6d768b
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Wed Aug 20 01:13:39 2014 +0200
+| | 
+| |     Add a "createVector" function for OSX
+| | 
+| |  src/graphics/post_processing.cpp |  5 +++--
+| |  src/utils/cpp2011.hpp            | 24 ++++++++++++++++++++++++
+| |  2 files changed, 27 insertions(+), 2 deletions(-)
+| |   
+| * commit af9c3d53b7789c414cb38c9478251b9c6634dee4
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Tue Aug 19 16:42:29 2014 +0200
+| | 
+| |     Use template to declare shader texture usage.
+| | 
+| |  src/graphics/glwrap.cpp           |   8 +-
+| |  src/graphics/gpuparticles.cpp     |   7 +-
+| |  src/graphics/post_processing.cpp  |  91 ++-----
+| |  src/graphics/render_geometry.cpp  | 182 ++++++-------
+| |  src/graphics/render_lighting.cpp  |   4 +-
+| |  src/graphics/shaders.cpp          | 453 ++++++++++++++++++++-------------
+| |  src/graphics/shaders.hpp          | 465 +++++++++++++++++++++++-----------
+| |  src/graphics/stkbillboard.cpp     |   2 +-
+| |  src/graphics/stkmeshscenenode.cpp |   6 +-
+| |  9 files changed, 716 insertions(+), 502 deletions(-)
+| |   
+| * commit 30c91217a7afb47ce75cc0ff62877f7afad4b701
+| | Author: Vincent Lejeune <vljn@ovi.com>
+| | Date:   Tue Aug 19 03:10:02 2014 +0200
+| | 
+| |     Factorize gl headers include in a separate file.
+| |     
+| |     It should avoid conflict with Xorg headers
+| | 
+| |  src/graphics/gl_headers.hpp | 115 ++++++++++++++++++++++++++++++++++++++++
+| |  src/graphics/glwrap.hpp     | 108 +------------------------------------
+| |  src/graphics/shaders.cpp    |   5 ++
+| |  src/graphics/shaders.hpp    |  31 +++++------
+| |  4 files changed, 133 insertions(+), 126 deletions(-)
+| |   
+| * commit bd7ec06d49fb3d594841160dab50ecaa3c43f81a
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Tue Aug 19 16:52:43 2014 +0200
+| | 
+| |     Fix build
+| | 
+| |  src/graphics/render_geometry.cpp | 2 +-
+| |  1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+* | commit 2a473a550a966e5b353200d51c28e35604d8ca50
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Tue Aug 19 17:30:44 2014 +0200
+| | 
+| |     Remove wrappers.
+| | 
+| |  src/graphics/shaders.cpp | 35 -----------------------------------
+| |  1 file changed, 35 deletions(-)
+| |   
+* | commit 92e5126ebfaa2f53c6d7ea86851b3aaf56d286b9
+| | Author: vlj <vljn@ovi.com>
+| | Date:   Tue Aug 19 17:16:27 2014 +0200
+| | 
+| |     Fix travis ci
+| | 
+| |  src/graphics/shaders.hpp | 2 +-
+| |  1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+* | commit 4641854c49ed0c18a436664466dcc419f3c4ce5d
+| | Author: Vincent Lejeune <vljn@ovi.com>
+| | Date:   Tue Aug 19 03:10:02 2014 +0200
+| | 
+| |     Factorize gl headers include in a separate file.
+| |     
+| |     It should avoid conflict with Xorg headers
+| | 
+| |  src/graphics/gl_headers.hpp | 115 ++++++++++++++++++++++++++++++++++++++++
+| |  src/graphics/glwrap.hpp     | 108 +------------------------------------
+| |  src/graphics/shaders.cpp    |   5 ++
+| |  src/graphics/shaders.hpp    |  31 +++++------
+| |  4 files changed, 133 insertions(+), 126 deletions(-)
+| |   
+* | commit 5128ab920b6c66d5756cea6ec608c3c2cfc4293e
+|/  Author: vlj <vljn@ovi.com>
+|   Date:   Tue Aug 19 16:52:43 2014 +0200
+|   
+|       Fix build
+|   
+|    src/graphics/render_geometry.cpp | 2 +-
+|    1 file changed, 1 insertion(+), 1 deletion(-)
+|  
+* commit da843cc8c143841cef72ad26cacf8ddc5ab76ee9
+| Author: Vincent Lejeune <vljn@ovi.com>
+| Date:   Sat Aug 16 21:13:23 2014 +0200
+| 
+|     Add sampler object support
+| 
+|  src/graphics/glwrap.cpp | 8 ++++++++
+|  src/graphics/glwrap.hpp | 4 ++++
+|  2 files changed, 12 insertions(+)
+|  
+* commit bdd7951c462f6d853313d73b020591831f040ce4
+| Author: vlj <vljn@ovi.com>
+| Date:   Mon Aug 18 09:21:58 2014 +0200
+| 
+|     Split animated meshes list from the others
+| 
+|  src/graphics/render_geometry.cpp | 31 +++++++++++++++++++++++++++++++
+|  src/graphics/stkanimatedmesh.cpp |  8 ++++----
+|  src/graphics/stkmesh.hpp         | 11 +++++++++++
+|  3 files changed, 46 insertions(+), 4 deletions(-)
+|  
+* commit 9af41a5166a2eafea3919d4ba30af4e92031e3b6
+| Author: Marianne Gagnon <auria.mg@gmail.com>
+| Date:   Mon Aug 18 20:01:45 2014 -0400
+| 
+|     Add actual light under thunderbird
+| 
+|  src/graphics/light.hpp           |  1 +
+|  src/graphics/referee.cpp         | 35 +++++++++++++++++++++++++++++++++++
+|  src/graphics/referee.hpp         |  2 ++
+|  src/graphics/render_lighting.cpp |  3 +++
+|  4 files changed, 41 insertions(+)
+|  
+* commit da90ea491e25261519421452be97ff8a9822414a
+| Author: Vincent Lejeune <vljn@ovi.com>
+| Date:   Tue Aug 19 01:36:06 2014 +0200
+| 
+|     Unlit material supports tex matrix
+| 
+|  src/graphics/render_geometry.cpp | 2 +-
+|  src/graphics/shaders.cpp         | 2 +-
+|  src/graphics/shaders.hpp         | 2 +-
+|  3 files changed, 3 insertions(+), 3 deletions(-)
+|    
+*   commit fcbc41171e4d6d5cfa49926d3606a47cdb3ad601
+|\  Merge: 0dc34b2 33686e9
+| | Author: auriamg <auria.mg@gmail.com>
+| | Date:   Mon Aug 18 19:04:43 2014 -0400
+| | 
+| |     Merge pull request #1463 from konstin/gp_editor_laps
+| |     
+| |     small improvements to the gp editor
+| |   
+| * commit 33686e9abc73c07b525eb217e1f5263ee537cacf
+| | Author: konstin <konstin@konstin.no-ip.biz>
+| | Date:   Mon Aug 18 15:16:53 2014 +0200
+| | 
+| |     make gp editor use default number of laps
+| | 
+| |  src/states_screens/edit_track_screen.cpp | 2 +-
+| |  1 file changed, 1 insertion(+), 1 deletion(-)
+| |   
+| * commit e400b5c212034b2e011c057f65219629cb068dd8
+| | Author: konstin <konstin@konstin.no-ip.biz>
+| | Date:   Mon Aug 18 15:15:22 2014 +0200
+| | 
+| |     improve readability
+| | 
+| |  src/states_screens/edit_gp_screen.cpp | 23 ++++++++++-------------
+| |  1 file changed, 10 insertions(+), 13 deletions(-)
+| |   
+| * commit 2f6424c3a2f561d2773c04575b858c05a8bc7d1c
+| | Author: konstin <konstin@konstin.no-ip.biz>
+| | Date:   Mon Aug 18 15:11:51 2014 +0200
+| | 
+| |     replace unecessary NULL-checks
+| | 
+| |  src/states_screens/grand_prix_editor_screen.cpp | 21 ++++-----------------
+| |  1 file changed, 4 insertions(+), 17 deletions(-)
+| |   
+* | commit 0dc34b2c0de9edd04bf588cedca8950ab4d6334c
+| | Author: Deve <deveee@gmail.com>
+| | Date:   Mon Aug 18 20:55:27 2014 +0200
+| | 
+| |     xrandr: few more checks
+| |     
+| |     - try to run in windowed mode if no output was found
+| |      - close display correctly in case of no output
+| |      - add few warnings
+| | 
+| |  lib/irrlicht/source/Irrlicht/CIrrDeviceLinux.cpp | 78 +++++++++-----------
+| |  1 file changed, 35 insertions(+), 43 deletions(-)
+| |   
+* | commit fe62df253dc4825091e2f3665e826df6389aabfc
+| | Author: hiker <henrichsjoerg@gmail.com>
+| | Date:   Mon Aug 18 22:43:26 2014 +1000
+| | 
+| |     Exit quicker if a request is being executed when stk is quit.
+| | 
+| |  src/online/request.cpp | 5 +++++
+| |  1 file changed, 5 insertions(+)
+| |   
+* | commit b2a936c8cd75c3b1db3667fc584a7b4dc9826ebb
+|/  Author: hiker <henrichsjoerg@gmail.com>
+|   Date:   Mon Aug 18 22:42:27 2014 +1000
+|   
+|       Fix crash caused when downloading requests for icons were still
+|       executing at game end.
+|   
+|    src/main.cpp                   | 5 ++++-
+|    src/online/request_manager.cpp | 4 +++-
+|    2 files changed, 7 insertions(+), 2 deletions(-)
+|  
+* commit fcb80cdb2c1543ebe00cb21d568ad13b55c04d31
+  Author: Marianne Gagnon <auria.mg@gmail.com>
+  Date:   Sun Aug 17 19:33:45 2014 -0400
+  
+      Update thunderbird to have new-engine-friendly traffic light animation
+  
+   src/graphics/referee.cpp | 29 +++++++----------------------
+   1 file changed, 7 insertions(+), 22 deletions(-)
