@@ -1,5 +1,6 @@
-#include "stkmesh.hpp"
+#include "graphics/glwrap.hpp"
 #include "graphics/irr_driver.hpp"
+#include "graphics/stkmesh.hpp"
 #include "tracks/track.hpp"
 #include <ISceneManager.h>
 #include <IMaterialRenderer.h>
@@ -126,6 +127,7 @@ GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb)
     GLMesh result = {};
     if (!mb)
         return result;
+    result.mb = mb;
 
     result.IndexCount = mb->getIndexCount();
     switch (mb->getIndexType())
@@ -178,6 +180,7 @@ GLMesh allocateMeshBuffer(scene::IMeshBuffer* mb)
     for (unsigned i = 0; i < 6; i++)
         result.textures[i] = mb->getMaterial().getTexture(i);
     result.TextureMatrix = 0;
+    result.VAOType = mb->getVertexType();
     return result;
 }
 
@@ -229,7 +232,7 @@ core::matrix4 computeMVP(const core::matrix4 &ModelMatrix)
     return ModelViewProjectionMatrix;
 }
 
-core::vector3df getWind()
+core::vector3df getWindDir()
 {
     const float time = irr_driver->getDevice()->getTimer()->getTime() / 1000.0f;
     GrassShaderProvider *gsp = (GrassShaderProvider *)irr_driver->getCallback(ES_GRASS);
@@ -292,4 +295,46 @@ bool isObject(video::E_MATERIAL_TYPE type)
     if (type == video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF)
         return true;
     return false;
+}
+
+static void
+SetTexture(GLMesh &mesh, unsigned i, bool isSrgb)
+{
+    if (!mesh.textures[i])
+        mesh.textures[i] = getUnicolorTexture(video::SColor(255, 255, 255, 255));
+    compressTexture(mesh.textures[i], isSrgb);
+    if (UserConfigParams::m_azdo)
+    {
+        if (!mesh.TextureHandles[i])
+            mesh.TextureHandles[i] = glGetTextureSamplerHandleARB(getTextureGLuint(mesh.textures[i]), MeshShader::ObjectPass1Shader::getInstance()->SamplersId[0]);
+        if (!glIsTextureHandleResidentARB(mesh.TextureHandles[i]))
+            glMakeTextureHandleResidentARB(mesh.TextureHandles[i]);
+    }
+}
+
+void InitTextures(GLMesh &mesh, MeshMaterial Mat)
+{
+    switch (Mat)
+    {
+    default:
+    case MAT_DEFAULT:
+    case MAT_ALPHA_REF:
+    case MAT_GRASS:
+    case MAT_SPHEREMAP:
+    case MAT_UNLIT:
+        SetTexture(mesh, 0, true);
+        break;
+    case MAT_DETAIL:
+    case MAT_NORMAL_MAP:
+        SetTexture(mesh, 0, true);
+        SetTexture(mesh, 1, false);
+        break;
+    case MAT_SPLATTING:
+        SetTexture(mesh, 0, true);
+        SetTexture(mesh, 1, true);
+        SetTexture(mesh, 2, true);
+        SetTexture(mesh, 3, true);
+        SetTexture(mesh, 4, true);
+        break;
+    }
 }

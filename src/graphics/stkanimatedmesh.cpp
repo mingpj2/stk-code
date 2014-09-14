@@ -1,3 +1,4 @@
+#include "graphics/glwrap.hpp"
 #include "graphics/stkanimatedmesh.hpp"
 #include <ISceneManager.h>
 #include <IMaterialRenderer.h>
@@ -19,7 +20,13 @@ const core::vector3df& rotation,
 const core::vector3df& scale) :
     CAnimatedMeshSceneNode(mesh, parent, mgr, id, position, rotation, scale)
 {
-    firstTime = true;
+    isGLInitialized = false;
+    isMaterialInitialized = false;
+}
+
+STKAnimatedMesh::~STKAnimatedMesh()
+{
+    cleanGLMeshes();
 }
 
 void STKAnimatedMesh::cleanGLMeshes()
@@ -31,43 +38,38 @@ void STKAnimatedMesh::cleanGLMeshes()
             continue;
         if (mesh.vao)
             glDeleteVertexArrays(1, &(mesh.vao));
-        glDeleteBuffers(1, &(mesh.vertex_buffer));
-        glDeleteBuffers(1, &(mesh.index_buffer));
+        if (mesh.vertex_buffer)
+            glDeleteBuffers(1, &(mesh.vertex_buffer));
+        if (mesh.index_buffer)
+            glDeleteBuffers(1, &(mesh.index_buffer));
     }
 }
 
 void STKAnimatedMesh::setMesh(scene::IAnimatedMesh* mesh)
 {
-    firstTime = true;
+    isGLInitialized = false;
+    isMaterialInitialized = false;
     GLmeshes.clear();
     for (unsigned i = 0; i < MAT_COUNT; i++)
         MeshSolidMaterial[i].clearWithoutDeleting();
     CAnimatedMeshSceneNode::setMesh(mesh);
 }
 
-void STKAnimatedMesh::render()
+void STKAnimatedMesh::updateNoGL()
 {
-    video::IVideoDriver* driver = SceneManager->getVideoDriver();
-
-    bool isTransparentPass =
-        SceneManager->getSceneNodeRenderPass() == scene::ESNRP_TRANSPARENT;
-
-    ++PassCount;
-
     scene::IMesh* m = getMeshForCurrentFrame();
 
     if (m)
-    {
         Box = m->getBoundingBox();
-    }
     else
     {
         Log::error("animated mesh", "Animated Mesh returned no mesh to render.");
         return;
     }
 
-    if (firstTime)
+    if (!isMaterialInitialized)
     {
+        video::IVideoDriver* driver = SceneManager->getVideoDriver();
         for (u32 i = 0; i < m->getMeshBufferCount(); ++i)
         {
             scene::IMeshBuffer* mb = Mesh->getMeshBuffer(i);
@@ -100,13 +102,49 @@ void STKAnimatedMesh::render()
                 MeshMaterial MatType = MaterialTypeToMeshMaterial(type, mb->getVertexType());
                 MeshSolidMaterial[MatType].push_back(&mesh);
             }
-            std::pair<unsigned, unsigned> p = VAOManager::getInstance()->getBase(mb);
-            mesh.vaoBaseVertex = p.first;
-            mesh.vaoOffset = p.second;
-            mesh.VAOType = mb->getVertexType();
         }
+        isMaterialInitialized = true;
     }
-    firstTime = false;
+}
+
+void STKAnimatedMesh::updateGL()
+{
+
+    scene::IMesh* m = getMeshForCurrentFrame();
+
+    if (!isGLInitialized)
+    {
+        for (u32 i = 0; i < m->getMeshBufferCount(); ++i)
+        {
+            scene::IMeshBuffer* mb = Mesh->getMeshBuffer(i);
+            if (!mb)
+                continue;
+            video::IVideoDriver* driver = SceneManager->getVideoDriver();
+            video::E_MATERIAL_TYPE type = mb->getMaterial().MaterialType;
+            video::IMaterialRenderer* rnd = driver->getMaterialRenderer(type);
+            GLMesh &mesh = GLmeshes[i];
+
+            if (!rnd->isTransparent())
+            {
+                MeshMaterial MatType = MaterialTypeToMeshMaterial(type, mb->getVertexType());
+                InitTextures(mesh, MatType);
+            }
+
+            if (irr_driver->hasARB_base_instance())
+            {
+                std::pair<unsigned, unsigned> p = VAOManager::getInstance()->getBase(mb);
+                mesh.vaoBaseVertex = p.first;
+                mesh.vaoOffset = p.second;
+            }
+            else
+            {
+                fillLocalBuffer(mesh, mb);
+                mesh.vao = createVAO(mesh.vertex_buffer, mesh.index_buffer, mb->getVertexType());
+                glBindVertexArray(0);
+            }
+        }
+        isGLInitialized = true;
+    }
 
     for (u32 i = 0; i<m->getMeshBufferCount(); ++i)
     {
@@ -114,93 +152,44 @@ void STKAnimatedMesh::render()
         const video::SMaterial& material = ReadOnlyMaterials ? mb->getMaterial() : Materials[i];
         if (isObject(material.MaterialType))
         {
-            if (irr_driver->getPhase() == SOLID_NORMAL_AND_DEPTH_PASS || irr_driver->getPhase() == TRANSPARENT_PASS)
+
+            size_t size = mb->getVertexCount() * GLmeshes[i].Stride, offset = GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride;
+            void *buf;
+            if (irr_driver->hasBufferStorageExtension())
+            {
+                buf = VAOManager::getInstance()->getVBOPtr(mb->getVertexType());
+                buf = (char *)buf + offset;
+            }
+            else
             {
                 glBindVertexArray(0);
-                size_t size = mb->getVertexCount() * GLmeshes[i].Stride;
-                glBindBuffer(GL_ARRAY_BUFFER, VAOManager::getInstance()->getVBO(mb->getVertexType()));
+                if (irr_driver->hasARB_base_instance())
+                    glBindBuffer(GL_ARRAY_BUFFER, VAOManager::getInstance()->getVBO(mb->getVertexType()));
+                else
+                    glBindBuffer(GL_ARRAY_BUFFER, GLmeshes[i].vertex_buffer);
                 GLbitfield bitfield = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT;
-                void * buf = glMapBufferRange(GL_ARRAY_BUFFER, GLmeshes[i].vaoBaseVertex * GLmeshes[i].Stride, size, bitfield);
-                memcpy(buf, mb->getVertices(), size);
+                buf = glMapBufferRange(GL_ARRAY_BUFFER, offset, size, bitfield);
+            }
+            memcpy(buf, mb->getVertices(), size);
+            if (!irr_driver->hasBufferStorageExtension())
+            {
                 glUnmapBuffer(GL_ARRAY_BUFFER);
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
         }
         if (mb)
             GLmeshes[i].TextureMatrix = getMaterial(i).getTextureMatrix(0);
-
-        video::IMaterialRenderer* rnd = driver->getMaterialRenderer(Materials[i].MaterialType);
-        bool transparent = (rnd && rnd->isTransparent());
-
-       // only render transparent buffer if this is the transparent render pass
-       // and solid only in solid pass
-       if (transparent != isTransparentPass)
-          continue;
     }
 
-    if (irr_driver->getPhase() == SOLID_NORMAL_AND_DEPTH_PASS || irr_driver->getPhase() == SHADOW_PASS)
-    {
-        ModelViewProjectionMatrix = computeMVP(AbsoluteTransformation);
-        core::matrix4 invmodel;
-        AbsoluteTransformation.getInverse(invmodel);
+}
 
-        GLMesh* mesh;
-        for_in(mesh, MeshSolidMaterial[MAT_DEFAULT])
-            pushVector(AnimatedListMatDefault::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
+void STKAnimatedMesh::render()
+{
+    bool isTransparentPass =
+        SceneManager->getSceneNodeRenderPass() == scene::ESNRP_TRANSPARENT;
 
-        for_in(mesh, MeshSolidMaterial[MAT_ALPHA_REF])
-            pushVector(AnimatedListMatAlphaRef::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
+    ++PassCount;
 
-        for_in(mesh, MeshSolidMaterial[MAT_DETAIL])
-            pushVector(AnimatedListMatDetails::getInstance(), mesh, AbsoluteTransformation, invmodel, mesh->TextureMatrix);
-
-        for_in(mesh, MeshSolidMaterial[MAT_UNLIT])
-            pushVector(AnimatedListMatUnlit::getInstance(), mesh, AbsoluteTransformation, core::matrix4::EM4CONST_IDENTITY, mesh->TextureMatrix);
-
-        return;
-    }
-
-    if (irr_driver->getPhase() == TRANSPARENT_PASS)
-    {
-        ModelViewProjectionMatrix = computeMVP(AbsoluteTransformation);
-
-        if (!TransparentMesh[TM_BUBBLE].empty())
-            glUseProgram(MeshShader::BubbleShader::Program);
-
-        GLMesh* mesh;
-        if (World::getWorld() && World::getWorld()->isFogEnabled())
-        {
-            const Track * const track = World::getWorld()->getTrack();
-
-            // Todo : put everything in a ubo
-            const float fogmax = track->getFogMax();
-            const float startH = track->getFogStartHeight();
-            const float endH = track->getFogEndHeight();
-            const float start = track->getFogStart();
-            const float end = track->getFogEnd();
-            const video::SColor tmpcol = track->getFogColor();
-
-            video::SColorf col(tmpcol.getRed() / 255.0f,
-                tmpcol.getGreen() / 255.0f,
-                tmpcol.getBlue() / 255.0f);
-
-            for_in(mesh, TransparentMesh[TM_DEFAULT])
-                ListBlendTransparentFog::getInstance()->push_back(
-                    STK::make_tuple(mesh, AbsoluteTransformation, mesh->TextureMatrix,
-                                    fogmax, startH, endH, start, end, col));
-            for_in(mesh, TransparentMesh[TM_ADDITIVE])
-                ListAdditiveTransparentFog::getInstance()->push_back(
-                STK::make_tuple(mesh, AbsoluteTransformation, mesh->TextureMatrix,
-                                    fogmax, startH, endH, start, end, col));
-        }
-        else
-        {
-            for_in(mesh, TransparentMesh[TM_DEFAULT])
-                pushVector(ListBlendTransparent::getInstance(), mesh, AbsoluteTransformation, mesh->TextureMatrix);
-
-            for_in(mesh, TransparentMesh[TM_ADDITIVE])
-                pushVector(ListAdditiveTransparent::getInstance(), mesh, AbsoluteTransformation, mesh->TextureMatrix);
-        }
-        return;
-    }
+    updateNoGL();
+    updateGL();
 }

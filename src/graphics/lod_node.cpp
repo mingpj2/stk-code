@@ -68,6 +68,9 @@ void LODNode::render()
  */
 int LODNode::getLevel()
 {
+    if (m_nodes.size() == 0)
+        return -1;
+
     // If a level is forced, use it
     if(m_forced_lod>-1)
         return m_forced_lod;
@@ -79,14 +82,13 @@ int LODNode::getLevel()
     AbstractKart* kart = camera->getKart();
     const Vec3 &pos = kart->getFrontXYZ();
 
-    // Assumes all children are at the same location
     const int dist =
-        (int)((getPosition() + m_nodes[0]->getPosition()).getDistanceFromSQ( core::vector3df(pos.getX(), pos.getY(), pos.getZ())));
+        (int)((m_nodes[0]->getAbsolutePosition()).getDistanceFromSQ( core::vector3df(pos.getX(), pos.getY(), pos.getZ())));
 
     for (unsigned int n=0; n<m_detail.size(); n++)
     {
         if (dist < m_detail[n])
-          return n;
+            return n;
     }
 
     // If it's the shadow pass, and we would have otherwise hidden the item, show the min one
@@ -108,7 +110,7 @@ void LODNode::forceLevelOfDetail(int n)
 // ----------------------------------------------------------------------------
 void LODNode::OnAnimate(u32 timeMs)
 {
-    if (isVisible())
+    if (isVisible() && m_nodes.size() > 0)
     {
         // update absolute position
         updateAbsolutePosition();
@@ -137,19 +139,24 @@ void LODNode::OnAnimate(u32 timeMs)
     }
 }
 
-void LODNode::OnRegisterSceneNode()
+void LODNode::updateVisibility(bool* shown)
 {
     if (!isVisible()) return;
     if (m_nodes.size() == 0) return;
 
-    bool shown = false;
     int level = getLevel();
-    if (level>=0)
+    for (size_t i = 0; i < m_nodes.size(); i++)
     {
-        m_nodes[level]->updateAbsolutePosition();
-        m_nodes[level]->OnRegisterSceneNode();
-        shown = true;
+        m_nodes[i]->setVisible(i == level);
+        if (i == level && shown != NULL)
+            *shown = (i > 0);
     }
+}
+
+void LODNode::OnRegisterSceneNode()
+{
+    bool shown;
+    updateVisibility(&shown);
 
     const u32 now = irr_driver->getDevice()->getTimer()->getTime();
 
@@ -158,6 +165,7 @@ void LODNode::OnRegisterSceneNode()
                                 m_nodes[0]->getType() == scene::ESNT_ANIMATED_MESH) &&
         now > m_last_tick)
     {
+        int level = getLevel();
         if (m_previous_visibility == WAS_HIDDEN && shown)
         {
             scene::IMesh* mesh;
@@ -254,20 +262,7 @@ void LODNode::OnRegisterSceneNode()
     m_previous_visibility = (shown ? WAS_SHOWN : WAS_HIDDEN);
     m_last_tick = now;
 
-    // If this node has children other than the LOD nodes, draw them
-    core::list<ISceneNode*>::Iterator it;
-
-    for (it = Children.begin(); it != Children.end(); it++)
-    {
-        if (m_nodes_set.find(*it) == m_nodes_set.end())
-        {
-            assert(*it != NULL);
-            if ((*it)->isVisible())
-            {
-                (*it)->OnRegisterSceneNode();
-            }
-        }
-    }
+    scene::ISceneNode::OnRegisterSceneNode();
 }
 
 void LODNode::add(int level, scene::ISceneNode* node, bool reparent)

@@ -19,11 +19,9 @@
 
 #include <IShaderConstantSetCallBack.h>
 #include <IMeshSceneNode.h>
-#include <vector>
 #include "config/user_config.hpp"
-#include "utils/singleton.hpp"
 
-#include "gl_headers.hpp"
+#include "shaders_util.hpp"
 
 using namespace irr;
 class ParticleSystemProxy;
@@ -52,389 +50,6 @@ public:
 };
 }
 
-bool needsUBO();
-
-unsigned getGLSLVersion();
-
-struct UniformHelper
-{
-    template<unsigned N = 0>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms)
-    {
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const core::matrix4 &mat, Args... arg)
-    {
-        glUniformMatrix4fv(uniforms[N], 1, GL_FALSE, mat.pointer());
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const video::SColorf &col, Args... arg)
-    {
-        glUniform3f(uniforms[N], col.r, col.g, col.b);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const video::SColor &col, Args... arg)
-    {
-        glUniform4i(uniforms[N], col.getRed(), col.getGreen(), col.getBlue(), col.getAlpha());
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const core::vector3df &v, Args... arg)
-    {
-        glUniform3f(uniforms[N], v.X, v.Y, v.Z);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const core::vector2df &v, Args... arg)
-    {
-        glUniform2f(uniforms[N], v.X, v.Y);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const core::dimension2df &v, Args... arg)
-    {
-        glUniform2f(uniforms[N], v.Width, v.Height);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, float f, Args... arg)
-    {
-        glUniform1f(uniforms[N], f);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, int f, Args... arg)
-    {
-        glUniform1i(uniforms[N], f);
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-    template<unsigned N = 0, typename... Args>
-    static void setUniformsHelper(const std::vector<GLuint> &uniforms, const std::vector<float> &v, Args... arg)
-    {
-        glUniform1fv(uniforms[N], v.size(), v.data());
-        setUniformsHelper<N + 1>(uniforms, arg...);
-    }
-
-};
-
-void bypassUBO(GLuint Program);
-
-extern std::vector<void(*)()> CleanTable;
-
-template<typename T, typename... Args>
-class ShaderHelperSingleton : public Singleton<T>
-{
-protected:
-    std::vector<GLuint> uniforms;
-    
-    void AssignUniforms_impl()
-    {
-    }
-
-    template<typename... U>
-    void AssignUniforms_impl(const char* name, U... rest)
-    {
-        uniforms.push_back(glGetUniformLocation(Program, name));
-        AssignUniforms_impl(rest...);
-    }
-
-    template<typename... U>
-    void AssignUniforms(U... rest)
-    {
-        static_assert(sizeof...(rest) == sizeof...(Args), "Count of Uniform's name mismatch");
-        AssignUniforms_impl(rest...);
-    }
-
-public:
-    GLuint Program;
-
-    ShaderHelperSingleton()
-    {
-        CleanTable.push_back(this->kill);
-    }
-
-    ~ShaderHelperSingleton()
-    {
-        glDeleteProgram(Program);
-    }
-
-    void setUniforms(const Args & ... args) const
-    {
-        if (needsUBO())
-            bypassUBO(Program);
-        UniformHelper::setUniformsHelper(uniforms, args...);
-    }
-};
-
-enum SamplerType {
-    Trilinear_Anisotropic_Filtered,
-    Semi_trilinear,
-    Bilinear_Filtered,
-    Bilinear_Clamped_Filtered,
-    Nearest_Filtered,
-    Shadow_Sampler,
-    Volume_Linear_Filtered,
-};
-
-void setTextureSampler(GLenum, GLuint, GLuint, GLuint);
-
-template<SamplerType...tp>
-struct CreateSamplers;
-
-template<SamplerType...tp>
-struct BindTexture;
-
-template<>
-struct CreateSamplers<>
-{
-    static void exec(std::vector<unsigned> &, std::vector<GLenum> &e)
-    {}
-};
-
-template<>
-struct BindTexture<>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {}
-};
-
-GLuint createNearestSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Nearest_Filtered, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createNearestSampler());
-        e.push_back(GL_TEXTURE_2D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureNearest(unsigned TU, unsigned tid);
-
-template<SamplerType...tp>
-struct BindTexture<Nearest_Filtered, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureNearest(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-GLuint createBilinearSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Bilinear_Filtered, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createBilinearSampler());
-        e.push_back(GL_TEXTURE_2D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureBilinear(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Bilinear_Filtered, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureBilinear(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-GLuint createBilinearClampedSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Bilinear_Clamped_Filtered, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createBilinearClampedSampler());
-        e.push_back(GL_TEXTURE_2D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureBilinearClamped(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Bilinear_Clamped_Filtered, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureBilinearClamped(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-GLuint createSemiTrilinearSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Semi_trilinear, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createSemiTrilinearSampler());
-        e.push_back(GL_TEXTURE_2D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureSemiTrilinear(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Semi_trilinear, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureSemiTrilinear(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-GLuint createTrilinearSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Trilinear_Anisotropic_Filtered, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createTrilinearSampler());
-        e.push_back(GL_TEXTURE_2D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureTrilinearAnisotropic(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Trilinear_Anisotropic_Filtered, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureTrilinearAnisotropic(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-template<SamplerType...tp>
-struct CreateSamplers<Volume_Linear_Filtered, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createBilinearSampler());
-        e.push_back(GL_TEXTURE_3D);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureVolume(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Volume_Linear_Filtered, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureVolume(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-GLuint createShadowSampler();
-
-template<SamplerType...tp>
-struct CreateSamplers<Shadow_Sampler, tp...>
-{
-    static void exec(std::vector<unsigned> &v, std::vector<GLenum> &e)
-    {
-        v.push_back(createShadowSampler());
-        e.push_back(GL_TEXTURE_2D_ARRAY);
-        CreateSamplers<tp...>::exec(v, e);
-    }
-};
-
-void BindTextureShadow(unsigned TU, unsigned tex);
-
-template<SamplerType...tp>
-struct BindTexture<Shadow_Sampler, tp...>
-{
-    static void exec(const std::vector<unsigned> &TU, const std::vector<unsigned> &TexId, unsigned N)
-    {
-        BindTextureShadow(TU[N], TexId[N]);
-        BindTexture<tp...>::exec(TU, TexId, N + 1);
-    }
-};
-
-template<SamplerType...tp>
-class TextureRead
-{
-private:
-    template<unsigned N, typename...Args>
-    void AssignTextureNames_impl(GLuint)
-    {}
-
-    template<unsigned N, typename...Args>
-    void AssignTextureNames_impl(GLuint Program, GLuint TexUnit, const char *name, Args...args...)
-    {
-        GLuint location = glGetUniformLocation(Program, name);
-        glUniform1i(location, TexUnit);
-        TextureUnits.push_back(TexUnit);
-        AssignTextureNames_impl<N + 1>(Program, args...);
-    }
-
-protected:
-    std::vector<GLuint> SamplersId;
-    std::vector<GLuint> TextureUnits;
-    std::vector<GLenum> TextureType;
-    template<typename...Args>
-    void AssignSamplerNames(GLuint Program, Args...args)
-    {
-        CreateSamplers<tp...>::exec(SamplersId, TextureType);
-
-        glUseProgram(Program);
-        AssignTextureNames_impl<0>(Program, args...);
-        glUseProgram(0);
-    }
-
-public:
-    void SetTextureUnits(const std::vector<GLuint> &args)
-    {
-        assert(args.size() == sizeof...(tp) && "Too much texture unit provided");
-        if (getGLSLVersion() >= 330)
-        {
-            for (unsigned i = 0; i < args.size(); i++)
-            {
-                setTextureSampler(TextureType[i], TextureUnits[i], args[i], SamplersId[i]);
-            }
-        }
-        else
-            BindTexture<tp...>::exec(TextureUnits, args, 0);
-    }
-
-    ~TextureRead()
-    {
-        for (unsigned i = 0; i < SamplersId.size(); i++)
-            glDeleteSamplers(1, &SamplersId[i]);
-    }
-};
 
 namespace MeshShader
 {
@@ -486,61 +101,79 @@ public:
     InstancedNormalMapShader();
 };
 
-class ObjectPass2Shader : public ShaderHelperSingleton<ObjectPass2Shader, core::matrix4, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class ObjectPass2Shader : public ShaderHelperSingleton<ObjectPass2Shader, core::matrix4, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     ObjectPass2Shader();
 };
 
-class InstancedObjectPass2Shader : public ShaderHelperSingleton<InstancedObjectPass2Shader>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedObjectPass2Shader : public ShaderHelperSingleton<InstancedObjectPass2Shader>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     InstancedObjectPass2Shader();
 };
 
-class InstancedObjectRefPass2Shader : public ShaderHelperSingleton<InstancedObjectRefPass2Shader>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedObjectRefPass2Shader : public ShaderHelperSingleton<InstancedObjectRefPass2Shader>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     InstancedObjectRefPass2Shader();
 };
 
-class DetailledObjectPass2Shader : public ShaderHelperSingleton<DetailledObjectPass2Shader, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
+class DetailledObjectPass2Shader : public ShaderHelperSingleton<DetailledObjectPass2Shader, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     DetailledObjectPass2Shader();
 };
 
-class ObjectUnlitShader : public ShaderHelperSingleton<ObjectUnlitShader, core::matrix4, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedDetailledObjectPass2Shader : public ShaderHelperSingleton<InstancedDetailledObjectPass2Shader>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
+{
+public:
+    InstancedDetailledObjectPass2Shader();
+};
+
+class ObjectUnlitShader : public ShaderHelperSingleton<ObjectUnlitShader, core::matrix4, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     ObjectUnlitShader();
 };
 
-class ObjectRefPass2Shader : public ShaderHelperSingleton<ObjectRefPass2Shader, core::matrix4, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedObjectUnlitShader : public ShaderHelperSingleton<InstancedObjectUnlitShader>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
+{
+public:
+    InstancedObjectUnlitShader();
+};
+
+class ObjectRefPass2Shader : public ShaderHelperSingleton<ObjectRefPass2Shader, core::matrix4, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     ObjectRefPass2Shader();
 };
 
-class GrassPass2Shader : public ShaderHelperSingleton<GrassPass2Shader, core::matrix4, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class GrassPass2Shader : public ShaderHelperSingleton<GrassPass2Shader, core::matrix4, core::vector3df>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     GrassPass2Shader();
 };
 
-class InstancedGrassPass2Shader : public ShaderHelperSingleton<InstancedGrassPass2Shader, core::vector3df, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedGrassPass2Shader : public ShaderHelperSingleton<InstancedGrassPass2Shader, core::vector3df, core::vector3df>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Nearest_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     InstancedGrassPass2Shader();
 };
 
-class SphereMapShader : public ShaderHelperSingleton<SphereMapShader, core::matrix4, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class SphereMapShader : public ShaderHelperSingleton<SphereMapShader, core::matrix4, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     SphereMapShader();
 };
 
-class SplattingShader : public ShaderHelperSingleton<SplattingShader, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
+class InstancedSphereMapShader : public ShaderHelperSingleton<InstancedSphereMapShader>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
+{
+public:
+    InstancedSphereMapShader();
+};
+
+class SplattingShader : public ShaderHelperSingleton<SplattingShader, core::matrix4>, public TextureRead<Nearest_Filtered, Nearest_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     SplattingShader();
@@ -581,7 +214,13 @@ public:
     ColorizeShader();
 };
 
-class ShadowShader : public ShaderHelperSingleton<ShadowShader, core::matrix4>, public TextureRead<>
+class InstancedColorizeShader : public ShaderHelperSingleton<InstancedColorizeShader>
+{
+public:
+    InstancedColorizeShader();
+};
+
+class ShadowShader : public ShaderHelperSingleton<ShadowShader, int, core::matrix4>, public TextureRead<>
 {
 public:
     ShadowShader();
@@ -593,6 +232,12 @@ public:
     RSMShader();
 };
 
+class InstancedRSMShader : public ShaderHelperSingleton<InstancedRSMShader, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+{
+public:
+    InstancedRSMShader();
+};
+
 class SplattingRSMShader : public ShaderHelperSingleton<SplattingRSMShader, core::matrix4, core::matrix4>,
     public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
 {
@@ -600,31 +245,31 @@ public:
     SplattingRSMShader();
 };
 
-class InstancedShadowShader : public ShaderHelperSingleton<InstancedShadowShader>, public TextureRead<>
+class InstancedShadowShader : public ShaderHelperSingleton<InstancedShadowShader, int>, public TextureRead<>
 {
 public:
     InstancedShadowShader();
 };
 
-class RefShadowShader : public ShaderHelperSingleton<RefShadowShader, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class RefShadowShader : public ShaderHelperSingleton<RefShadowShader, int, core::matrix4>, public TextureRead<Trilinear_Anisotropic_Filtered>
 {
 public:
     RefShadowShader();
 };
 
-class InstancedRefShadowShader : public ShaderHelperSingleton<InstancedRefShadowShader>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedRefShadowShader : public ShaderHelperSingleton<InstancedRefShadowShader, int>, public TextureRead<Trilinear_Anisotropic_Filtered>
 {
 public:
     InstancedRefShadowShader();
 };
 
-class GrassShadowShader : public ShaderHelperSingleton<GrassShadowShader, core::matrix4, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class GrassShadowShader : public ShaderHelperSingleton<GrassShadowShader, int, core::matrix4, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
 {
 public:
     GrassShadowShader();
 };
 
-class InstancedGrassShadowShader : public ShaderHelperSingleton<InstancedGrassShadowShader, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
+class InstancedGrassShadowShader : public ShaderHelperSingleton<InstancedGrassShadowShader, int, core::vector3df>, public TextureRead<Trilinear_Anisotropic_Filtered>
 {
 public:
     InstancedGrassShadowShader();
@@ -636,22 +281,17 @@ public:
     DisplaceMaskShader();
 };
 
-class DisplaceShader : public ShaderHelperSingleton<DisplaceShader, core::matrix4, core::vector2df, core::vector2df>, public TextureRead<Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered, Trilinear_Anisotropic_Filtered>
+class DisplaceShader : public ShaderHelperSingleton<DisplaceShader, core::matrix4, core::vector2df, core::vector2df>, public TextureRead<Bilinear_Filtered, Bilinear_Filtered, Bilinear_Filtered, Trilinear_Anisotropic_Filtered>
 {
 public:
     DisplaceShader();
 };
 
-class SkyboxShader
+class SkyboxShader : public ShaderHelperSingleton<SkyboxShader, core::matrix4>, public TextureRead<Trilinear_cubemap>
 {
 public:
-    static GLuint Program;
-    static GLuint attrib_position;
-    static GLuint uniform_MM, uniform_tex;
-    static GLuint cubevao;
-
-    static void init();
-    static void setUniforms(const core::matrix4 &ModelMatrix, const core::vector2df &screen, unsigned TU_tex);
+    SkyboxShader();
+    GLuint cubevao;
 };
 
 class NormalVisualizer : public ShaderHelperSingleton<NormalVisualizer, core::matrix4, core::matrix4, video::SColor>

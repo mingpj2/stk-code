@@ -1,4 +1,5 @@
 #include "graphics/irr_driver.hpp"
+#include "graphics/glwrap.hpp"
 #include "gpuparticles.hpp"
 #include "io/file_manager.hpp"
 #include "config/user_config.hpp"
@@ -6,6 +7,7 @@
 #include <IParticleSystemSceneNode.h>
 #include "guiengine/engine.hpp"
 #include "graphics/particle_emitter.hpp"
+#include "../../lib/irrlicht/source/Irrlicht/os.h"
 #define COMPONENTCOUNT 8
 
 scene::IParticleSystemSceneNode *ParticleSystemProxy::addParticleNode(
@@ -447,6 +449,12 @@ void ParticleSystemProxy::render() {
     m_first_execution = false;
     simulate();
     draw();
+}
+
+bool ParticleSystemProxy::update()
+{
+    doParticleSystem(os::Timer::getTime());
+    return (IsVisible && (Particles.size() != 0));
 }
 
 void ParticleSystemProxy::OnRegisterSceneNode()

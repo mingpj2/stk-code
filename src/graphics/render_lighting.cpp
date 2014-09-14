@@ -16,7 +16,6 @@
 #include "graphics/screenquad.hpp"
 #include "graphics/shaders.hpp"
 #include "graphics/stkmeshscenenode.hpp"
-#include "graphics/stkinstancedscenenode.hpp"
 #include "graphics/wind.hpp"
 #include "io/file_manager.hpp"
 #include "items/item.hpp"
@@ -127,10 +126,10 @@ unsigned IrrDriver::UpdateLightsInfo(scene::ICameraSceneNode * const camnode, fl
     return lightnum;
 }
 
-void IrrDriver::renderLights(unsigned pointlightcount)
+void IrrDriver::renderLights(unsigned pointlightcount, bool hasShadow)
 {
     //RH
-    if (UserConfigParams::m_gi)
+    if (UserConfigParams::m_gi && UserConfigParams::m_shadows && hasShadow)
     {
         ScopedGPUTimer timer(irr_driver->getGPUTimer(Q_RH));
         glDisable(GL_BLEND);
@@ -172,7 +171,7 @@ void IrrDriver::renderLights(unsigned pointlightcount)
         return;
 
     m_rtts->getFBO(FBO_DIFFUSE).Bind();
-    if (UserConfigParams::m_gi)
+    if (UserConfigParams::m_gi && UserConfigParams::m_shadows && hasShadow)
     {
         ScopedGPUTimer timer(irr_driver->getGPUTimer(Q_GI));
         m_post_processing->renderGI(rh_matrix, rh_extend, m_rtts->getRH().getRTT()[0], m_rtts->getRH().getRTT()[1], m_rtts->getRH().getRTT()[2]);

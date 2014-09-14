@@ -62,12 +62,6 @@ class XMLNode;
 
 const int HEIGHT_MAP_RESOLUTION = 256;
 
-enum WeatherType
-{
-    WEATHER_NONE,
-    WEATHER_RAIN
-};
-
 struct OverworldForceField
 {
     core::vector3df m_position;
@@ -310,7 +304,8 @@ private:
     ParticleKind*            m_sky_particles;
 
     /** Use a special built-in wheather */
-    WeatherType              m_weather_type;
+    bool                     m_weather_lightning;
+    std::string              m_weather_sound;
 
     /** A simple class to keep information about a track mode. */
     class TrackMode
@@ -383,7 +378,12 @@ private:
     float m_bloom_threshold;
 
     bool m_lensflare;
+
     bool m_godrays;
+    core::vector3df m_godrays_position;
+    float m_godrays_opacity;
+    video::SColor m_godrays_color;
+
     bool m_shadows;
 
     float m_displacement_speed;
@@ -401,6 +401,7 @@ private:
     /** The number of laps the track will be raced in a random GP.
      * m_actual_number_of_laps is initialised with this value.*/
     int m_default_number_of_laps;
+
     /** The number of laps that is predefined in a track info dialog. */
     int m_actual_number_of_laps;
 
@@ -419,7 +420,7 @@ private:
 
 public:
 
-    bool reverseAvailable() { return m_reverse_available; }
+    bool reverseAvailable() const { return m_reverse_available; }
     void handleAnimatedTextures(scene::ISceneNode *node, const XMLNode &xml);
 
     static const float NOHIT;
@@ -463,8 +464,16 @@ public:
     /** Returns true if this track has an arena mode. */
     bool isArena() const { return m_is_arena; }
     // ------------------------------------------------------------------------
+    /** Returns true if this track is a racing track. This means it is not an
+     *  internal track (like cut scenes), arena, or soccer field. */
+    bool isRaceTrack() const 
+    {
+        return !m_internal && !m_is_arena && !m_is_soccer;
+    }   // isRaceTrack
+    // ------------------------------------------------------------------------
     /** Returns true if this track has easter eggs. */
     bool hasEasterEggs() const { return m_has_easter_eggs; }
+    // ------------------------------------------------------------------------
     bool               isSoccer             () const { return m_is_soccer; }
     // ------------------------------------------------------------------------
     void               loadTrackModel  (World* parent,
@@ -561,7 +570,9 @@ public:
     unsigned int getNumberOfStartPositions() const
                                           { return m_start_transforms.size(); }
     // ------------------------------------------------------------------------
-    WeatherType   getWeatherType          () const { return m_weather_type; }
+    bool getWeatherLightning() {return m_weather_lightning;}
+    // ------------------------------------------------------------------------
+    std::string getWeatherSound() {return m_weather_sound;}
     // ------------------------------------------------------------------------
     ParticleKind* getSkyParticles         () { return m_sky_particles; }
     // ------------------------------------------------------------------------
@@ -594,34 +605,59 @@ public:
     /** Returns true if the normals of this track can be smoothed. */
     bool smoothNormals() const { return m_smooth_normals; }
     // ------------------------------------------------------------------------
-    TrackObjectManager* getTrackObjectManager() const {return m_track_object_manager;}
+    /** Returns the track object manager. */
+    TrackObjectManager* getTrackObjectManager() const
+    {
+        return m_track_object_manager;
+    }   // getTrackObjectManager
 
+    // ------------------------------------------------------------------------
     /** Get list of challenges placed on that world. Works only for overworld. */
     const std::vector<OverworldChallenge>& getChallengeList() const
         { return m_challenges; }
 
+    // ------------------------------------------------------------------------
     const std::vector<Subtitle>& getSubtitles() const { return m_subtitles; }
 
+    // ------------------------------------------------------------------------
     bool hasClouds() const { return m_clouds; }
 
+    // ------------------------------------------------------------------------
     bool getBloom() const { return m_bloom; }
+
+    // ------------------------------------------------------------------------
     float getBloomThreshold() const { return m_bloom_threshold; }
 
+    // ------------------------------------------------------------------------
     /** Return the color levels for color correction shader */
     core::vector3df getColorLevelIn() const { return m_color_inlevel; }
+    // ------------------------------------------------------------------------
     core::vector2df getColorLevelOut() const { return m_color_outlevel; }
 
+    // ------------------------------------------------------------------------
     bool hasLensFlare() const { return m_lensflare; }
+    // ------------------------------------------------------------------------
     bool hasGodRays() const { return m_godrays; }
+    // ------------------------------------------------------------------------
+    core::vector3df getGodRaysPosition() const { return m_godrays_position; }
+    // ------------------------------------------------------------------------
+    float getGodRaysOpacity() const { return m_godrays_opacity; }
+    // ------------------------------------------------------------------------
+    video::SColor getGodRaysColor() const { return m_godrays_color; }
+    // ------------------------------------------------------------------------
     bool hasShadows() const { return m_shadows; }
-
+    // ------------------------------------------------------------------------
     void addNode(scene::ISceneNode* node) { m_all_nodes.push_back(node); }
-
-    float     getDisplacementSpeed()   const { return m_displacement_speed;    }
-    float     getCausticsSpeed()       const { return m_caustics_speed;        }
+    // ------------------------------------------------------------------------
+    float getDisplacementSpeed() const { return m_displacement_speed;    }
+    // ------------------------------------------------------------------------
+    float getCausticsSpeed() const { return m_caustics_speed;        }
+    // ------------------------------------------------------------------------
     const int getDefaultNumberOfLaps() const { return m_default_number_of_laps;}
-    const int getActualNumberOfLap()   const { return m_actual_number_of_laps; }
-    void      setActualNumberOfLaps(unsigned int laps)
+    // ------------------------------------------------------------------------
+    const int getActualNumberOfLap() const { return m_actual_number_of_laps; }
+    // ------------------------------------------------------------------------
+    void setActualNumberOfLaps(unsigned int laps)
                                          { m_actual_number_of_laps = laps; }
     bool operator<(const Track &other) const;
 };   // class Track

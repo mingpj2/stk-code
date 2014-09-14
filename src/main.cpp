@@ -854,7 +854,7 @@ int handleCmdLine()
             Log::warn("main", "There is no GP named '%s'.", s.c_str());
             return 0;
         }
-        race_manager->setGrandPrix(gp);
+        race_manager->setGrandPrix(*gp);
     }   // --gp
 
     if(CommandLine::has("--numkarts", &n) ||CommandLine::has("-k", &n))
@@ -1155,8 +1155,12 @@ void askForInternetPermission()
 
 //=============================================================================
 
-#if defined(DEBUG) && defined(WIN32) && !defined(__CYGWIN__)
-#pragma comment(linker, "/SUBSYSTEM:console")
+#if defined(WIN32) && defined(_MSC_VER)
+    #ifdef DEBUG
+        #pragma comment(linker, "/SUBSYSTEM:console")
+    #else
+        #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+    #endif
 #endif
 
 // ----------------------------------------------------------------------------

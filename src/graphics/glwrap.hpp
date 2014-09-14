@@ -6,11 +6,7 @@
 #include <vector>
 #include "irr_driver.hpp"
 #include "utils/log.hpp"
-
-// already includes glext.h, which defines useful GL constants.
-// COpenGLDriver has already loaded the extension GL functions we use (e.g glBeginQuery)
-#include "../../lib/irrlicht/source/Irrlicht/COpenGLDriver.h"
-
+#include "vaomanager.hpp"
 
 void initGL();
 GLuint LoadTFBProgram(const char * vertex_file_path, const char **varyings, unsigned varyingscount);
@@ -46,24 +42,22 @@ void printFileList(GLint ShaderType, const char *filepath, Types ... args)
     printFileList(args...);
 }
 
+enum AttributeType
+{
+    OBJECT,
+    PARTICLES_SIM,
+    PARTICLES_RENDERING,
+};
+
+void setAttribute(AttributeType Tp, GLuint ProgramID);
+
 template<typename ... Types>
-GLint LoadProgram(Types ... args)
+GLint LoadProgram(AttributeType Tp, Types ... args)
 {
     GLint ProgramID = glCreateProgram();
     loadAndAttach(ProgramID, args...);
     if (irr_driver->getGLSLVersion() < 330)
-    {
-        glBindAttribLocation(ProgramID, 0, "Position");
-        glBindAttribLocation(ProgramID, 1, "Normal");
-        glBindAttribLocation(ProgramID, 2, "Color");
-        glBindAttribLocation(ProgramID, 3, "Texcoord");
-        glBindAttribLocation(ProgramID, 4, "SecondTexcoord");
-        glBindAttribLocation(ProgramID, 5, "Tangent");
-        glBindAttribLocation(ProgramID, 6, "Bitangent");
-        glBindAttribLocation(ProgramID, 7, "Origin");
-        glBindAttribLocation(ProgramID, 8, "Orientation");
-        glBindAttribLocation(ProgramID, 9, "Scale");
-    }
+        setAttribute(Tp, ProgramID);
     glLinkProgram(ProgramID);
 
     GLint Result = GL_FALSE;
@@ -92,6 +86,8 @@ class GPUTimer;
 
 class ScopedGPUTimer
 {
+protected:
+    GPUTimer &timer;
 public:
     ScopedGPUTimer(GPUTimer &);
     ~ScopedGPUTimer();
@@ -102,6 +98,8 @@ class GPUTimer
     friend class ScopedGPUTimer;
     GLuint query;
     bool initialised;
+    unsigned lastResult;
+    bool canSubmitQuery;
 public:
     GPUTimer();
     unsigned elapsedTimeus();
@@ -131,35 +129,7 @@ public:
 // core::rect<s32> needs these includes
 #include <rect.h>
 #include "utils/vec3.hpp"
-
-GLuint getTextureGLuint(irr::video::ITexture *tex);
-GLuint getDepthTexture(irr::video::ITexture *tex);
-void resetTextureTable();
-void compressTexture(irr::video::ITexture *tex, bool srgb, bool premul_alpha = false);
-bool loadCompressedTexture(const std::string& compressed_tex);
-void saveCompressedTexture(const std::string& compressed_tex);
-
-class VAOManager : public Singleton<VAOManager>
-{
-    enum VTXTYPE { VTXTYPE_STANDARD, VTXTYPE_TCOORD, VTXTYPE_TANGENT, VTXTYPE_COUNT };
-    GLuint vbo[VTXTYPE_COUNT], ibo[VTXTYPE_COUNT], vao[VTXTYPE_COUNT];
-    std::vector<scene::IMeshBuffer *> storedCPUBuffer[VTXTYPE_COUNT];
-    void *vtx_mirror[VTXTYPE_COUNT], *idx_mirror[VTXTYPE_COUNT];
-    size_t vtx_cnt[VTXTYPE_COUNT], idx_cnt[VTXTYPE_COUNT];
-    std::map<scene::IMeshBuffer*, unsigned> mappedBaseVertex[VTXTYPE_COUNT], mappedBaseIndex[VTXTYPE_COUNT];
-
-    void regenerateBuffer(enum VTXTYPE);
-    void regenerateVAO(enum VTXTYPE);
-    size_t getVertexPitch(enum VTXTYPE) const;
-    VTXTYPE getVTXTYPE(video::E_VERTEX_TYPE type);
-    void append(scene::IMeshBuffer *, VTXTYPE tp);
-public:
-    VAOManager();
-    std::pair<unsigned, unsigned> getBase(scene::IMeshBuffer *);
-    unsigned getVBO(video::E_VERTEX_TYPE type) { return vbo[getVTXTYPE(type)]; }
-    unsigned getVAO(video::E_VERTEX_TYPE type) { return vao[getVTXTYPE(type)]; }
-    ~VAOManager();
-};
+#include "texturemanager.hpp"
 
 void draw3DLine(const core::vector3df& start,
     const core::vector3df& end, irr::video::SColor color);

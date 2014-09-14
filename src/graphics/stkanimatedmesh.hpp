@@ -7,24 +7,27 @@
 #include "graphics/stkmesh.hpp"
 #include "utils/ptr_vector.hpp"
 
-class STKAnimatedMesh : public irr::scene::CAnimatedMeshSceneNode
+class STKAnimatedMesh : public irr::scene::CAnimatedMeshSceneNode, public STKMeshCommon
 {
 protected:
-    bool firstTime;
-    PtrVector<GLMesh, REF> MeshSolidMaterial[MAT_COUNT];
-    PtrVector<GLMesh, REF> TransparentMesh[TM_COUNT];
+    bool isMaterialInitialized;
+    bool isGLInitialized;
     std::vector<GLMesh> GLmeshes;
     core::matrix4 ModelViewProjectionMatrix;
     void cleanGLMeshes();
 public:
+    virtual void updateNoGL();
+    virtual void updateGL();
   STKAnimatedMesh(irr::scene::IAnimatedMesh* mesh, irr::scene::ISceneNode* parent,
      irr::scene::ISceneManager* mgr, irr::s32 id,
      const irr::core::vector3df& position = irr::core::vector3df(0,0,0),
      const irr::core::vector3df& rotation = irr::core::vector3df(0,0,0),
      const irr::core::vector3df& scale = irr::core::vector3df(1.0f, 1.0f, 1.0f));
+  ~STKAnimatedMesh();
 
   virtual void render();
   virtual void setMesh(irr::scene::IAnimatedMesh* mesh);
+  virtual bool glow() const { return false; }
 };
 
 #endif // STKANIMATEDMESH_HPP

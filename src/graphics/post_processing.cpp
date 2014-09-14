@@ -337,15 +337,12 @@ void PostProcessing::renderGaussian17TapBlur(FrameBuffer &in_fbo, FrameBuffer &a
     assert(in_fbo.getWidth() == auxiliary.getWidth() && in_fbo.getHeight() == auxiliary.getHeight());
     float inv_width = 1.0f / in_fbo.getWidth(), inv_height = 1.0f / in_fbo.getHeight();
     {
-#if WIN32
-        if (irr_driver->getGLSLVersion() < 430)
-#endif
+        if (!irr_driver->hasARBComputeShaders())
         {
             auxiliary.Bind();
             FullScreenShader::Gaussian17TapHShader::getInstance()->SetTextureUnits(createVector<GLuint>(in_fbo.getRTT()[0], irr_driver->getFBO(FBO_LINEAR_DEPTH).getRTT()[0]));
             DrawFullScreenEffect<FullScreenShader::Gaussian17TapHShader>(core::vector2df(inv_width, inv_height));
         }
-#if WIN32
         else
         {
 
@@ -356,19 +353,15 @@ void PostProcessing::renderGaussian17TapBlur(FrameBuffer &in_fbo, FrameBuffer &a
             FullScreenShader::ComputeGaussian17TapHShader::getInstance()->setUniforms();
             glDispatchCompute(in_fbo.getWidth() / 8, in_fbo.getHeight() / 8, 1);
         }
-#endif
     }
     {
-#if WIN32
-        if (irr_driver->getGLSLVersion() < 430)
-#endif
+        if (!irr_driver->hasARBComputeShaders())
         {
             in_fbo.Bind();
 
             FullScreenShader::Gaussian17TapVShader::getInstance()->SetTextureUnits(createVector<GLuint>(auxiliary.getRTT()[0], irr_driver->getFBO(FBO_LINEAR_DEPTH).getRTT()[0]));
             DrawFullScreenEffect<FullScreenShader::Gaussian17TapVShader>(core::vector2df(inv_width, inv_height));
         }
-#if WIN32
         else
         {
             glUseProgram(FullScreenShader::ComputeGaussian17TapVShader::getInstance()->Program);
@@ -378,7 +371,6 @@ void PostProcessing::renderGaussian17TapBlur(FrameBuffer &in_fbo, FrameBuffer &a
             FullScreenShader::ComputeGaussian17TapVShader::getInstance()->setUniforms();
             glDispatchCompute(in_fbo.getWidth() / 8, in_fbo.getHeight() / 8, 1);
         }
-#endif
     }
 }
 
@@ -608,22 +600,26 @@ FrameBuffer *PostProcessing::render(scene::ICameraSceneNode * const camnode, boo
         if (World::getWorld() != NULL)
             hasgodrays = World::getWorld()->getTrack()->hasGodRays();
 
-        if (isRace && UserConfigParams::m_light_shaft && m_sunpixels > 30 && hasgodrays)
+        if (isRace && UserConfigParams::m_light_shaft && hasgodrays)
         {
+            Track* track = World::getWorld()->getTrack();
+
             glEnable(GL_DEPTH_TEST);
             // Grab the sky
             out_fbo->Bind();
             glClear(GL_COLOR_BUFFER_BIT);
-            irr_driver->renderSkybox(camnode);
+//            irr_driver->renderSkybox(camnode);
 
             // Set the sun's color
-            const SColor col = World::getWorld()->getTrack()->getSunColor();
+            const SColor col = track->getGodRaysColor();
             ColorizeProvider * const colcb = (ColorizeProvider *)irr_driver->getCallback(ES_COLORIZE);
             colcb->setColor(col.getRed() / 255.0f, col.getGreen() / 255.0f, col.getBlue() / 255.0f);
 
             // The sun interposer
             STKMeshSceneNode *sun = irr_driver->getSunInterposer();
-            irr_driver->getSceneManager()->drawAll(ESNRP_CAMERA);
+            sun->setGlowColors(col);
+            sun->setPosition(track->getGodRaysPosition());
+            sun->updateAbsolutePosition();
             irr_driver->setPhase(GLOW_PASS);
             sun->render();
             glDisable(GL_DEPTH_TEST);
@@ -637,7 +633,7 @@ FrameBuffer *PostProcessing::render(scene::ICameraSceneNode * const camnode, boo
             renderGaussian3Blur(irr_driver->getFBO(FBO_QUARTER1), irr_driver->getFBO(FBO_QUARTER2));
 
             // Calculate the sun's position in texcoords
-            const core::vector3df pos = sun->getPosition();
+            const core::vector3df pos = track->getGodRaysPosition();
             float ndc[4];
             core::matrix4 trans = camnode->getProjectionMatrix();
             trans *= camnode->getViewMatrix();

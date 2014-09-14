@@ -3,6 +3,8 @@
 // This file is part of the "Irrlicht Engine".
 // For conditions of distribution and use, see copyright notice in irrlicht.h
 
+extern bool GLContextDebugBit;
+
 #include "CIrrDeviceLinux.h"
 
 #ifdef _IRR_COMPILE_WITH_X11_DEVICE_
@@ -251,12 +253,10 @@ bool CIrrDeviceLinux::restoreResolution()
 	if (UseXRandR && CreationParams.Fullscreen && old_mode != BadRRMode)
 	{
 		XRRScreenResources* res = XRRGetScreenResources(display, DefaultRootWindow(display));
-		
 		if (!res)
 			return false;
 
 		XRROutputInfo* output = XRRGetOutputInfo(display, res, output_id);
-		
 		if (!output || !output->crtc || output->connection == RR_Disconnected) 
 		{
 			XRRFreeOutputInfo(output);
@@ -264,10 +264,8 @@ bool CIrrDeviceLinux::restoreResolution()
 		}
 
 		XRRCrtcInfo* crtc = XRRGetCrtcInfo(display, res, output->crtc);
-
 		if (!crtc) 
 		{
-			XRRFreeCrtcInfo(crtc);
 			XRRFreeOutputInfo(output);
 			return false;
 		}
@@ -288,7 +286,7 @@ bool CIrrDeviceLinux::restoreResolution()
 }
 
 
-bool CIrrDeviceLinux::switchToFullscreen()
+bool CIrrDeviceLinux::changeResolution()
 {
 	if (!CreationParams.Fullscreen)
 		return true;
@@ -356,22 +354,33 @@ bool CIrrDeviceLinux::switchToFullscreen()
 
 		XFree(modes);
 	}
-	else
 	#endif
 	#ifdef _IRR_LINUX_X11_RANDR_
-	if (XRRQueryExtension(display, &eventbase, &errorbase))
+	while (XRRQueryExtension(display, &eventbase, &errorbase))
 	{
-		XRRScreenResources* res = XRRGetScreenResources(display, DefaultRootWindow(display));
+		if (output_id == BadRROutput)
+			break;
 
-		if (!res || output_id == BadRROutput)
-		{
-			os::Printer::log("Could not get video output. Try to run in windowed mode.", ELL_WARNING);
-			CreationParams.Fullscreen = false;
-			return CreationParams.Fullscreen;
-		}
+		XRRScreenResources* res = XRRGetScreenResources(display, DefaultRootWindow(display));
+		if (!res)
+			break;
 
 		XRROutputInfo* output = XRRGetOutputInfo(display, res, output_id);
+		if (!output || !output->crtc || output->connection == RR_Disconnected)
+		{
+			XRRFreeOutputInfo(output);
+			XRRFreeScreenResources(res);
+			break;
+		}
+		
 		XRRCrtcInfo* crtc = XRRGetCrtcInfo(display, res, output->crtc);
+		if (!crtc)
+		{
+			XRRFreeOutputInfo(output);
+			XRRFreeScreenResources(res);
+			break;
+		}
+
 		float refresh_rate, refresh_rate_new;
 		core::dimension2d<u32> mode0_size = core::dimension2d<u32>(0, 0);
 
@@ -436,26 +445,22 @@ bool CIrrDeviceLinux::switchToFullscreen()
 		Status s = XRRSetCrtcConfig(display, res, output->crtc, CurrentTime,
 									crtc->x, crtc->y, output->modes[bestMode],
 									crtc->rotation, &output_id, 1);
+		
+		if (s == Success)
+			UseXRandR = true;
 
 		XRRFreeCrtcInfo(crtc);
 		XRRFreeOutputInfo(output);
 		XRRFreeScreenResources(res);
-
-		if (s != Success)
-		{
-			CreationParams.Fullscreen = false;
-			return CreationParams.Fullscreen;
-		}
-
-		UseXRandR=true;
+		break;
 	}
-	else
-	#endif
+	
+	if (UseXRandR == false)
 	{
-		os::Printer::log("VidMode or RandR extension must be installed to allow Irrlicht "
-		"to switch to fullscreen mode. Running in windowed mode instead.", ELL_WARNING);
+		os::Printer::log("Could not get video output. Try to run in windowed mode.", ELL_WARNING);
 		CreationParams.Fullscreen = false;
 	}
+	#endif
 
 	return CreationParams.Fullscreen;
 }
@@ -494,7 +499,7 @@ void IrrPrintXGrabError(int grabResult, const c8 * grabCommand )
 static GLXContext getMeAGLContext(Display *display, GLXFBConfig glxFBConfig)
 {
 	GLXContext Context;
-	int compat33ctx[] =
+	int compat33ctxdebug[] =
 		{
 			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
 			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
@@ -502,7 +507,14 @@ static GLXContext getMeAGLContext(Display *display, GLXFBConfig glxFBConfig)
 			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
 			None
 		};
-	int core33ctx[] =
+    int compat33ctx[] =
+    {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+        GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+        None
+    };
+	int core33ctxdebug[] =
 		{
 			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
 			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
@@ -510,12 +522,26 @@ static GLXContext getMeAGLContext(Display *display, GLXFBConfig glxFBConfig)
 			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
 			None
 		};
+    int core33ctx[] =
+    {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+        GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+        None
+    };
+    int core31ctxdebug[] =
+    {
+        GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+        GLX_CONTEXT_MINOR_VERSION_ARB, 1,
+        GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+        GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
+        None
+    };
 	int core31ctx[] =
 		{
 			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
 			GLX_CONTEXT_MINOR_VERSION_ARB, 1,
 			GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-			GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_DEBUG_BIT_ARB,
 			None
 		};
 	int legacyctx[] =
@@ -529,19 +555,19 @@ static GLXContext getMeAGLContext(Display *display, GLXFBConfig glxFBConfig)
 						glXGetProcAddressARB( (const GLubyte *) "glXCreateContextAttribsARB" );
 
 	// create compat 3.3 context (for proprietary drivers)
-	Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, compat33ctx);
+    Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, GLContextDebugBit ? compat33ctxdebug : compat33ctx);
 	if (!XErrorSignaled)
 		return Context;
 
 	XErrorSignaled = false;
 	// create core 3.3 context (for mesa)
-	Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, core33ctx);
+    Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, GLContextDebugBit ? core33ctxdebug : core33ctx);
 	if (!XErrorSignaled)
 		return Context;
 
 	XErrorSignaled = false;
 	// create core 3.1 context (for older mesa)
-	Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, core31ctx);
+    Context = glXCreateContextAttribsARB(display, glxFBConfig, 0, True, GLContextDebugBit ? core31ctxdebug : core31ctx);
 	if (!XErrorSignaled)
 		return Context;
 
@@ -570,7 +596,7 @@ bool CIrrDeviceLinux::createWindow()
 
 	screennr = DefaultScreen(display);
 
-	switchToFullscreen();
+	changeResolution();
 
 #ifdef _IRR_COMPILE_WITH_OPENGL_
 
@@ -1625,7 +1651,6 @@ video::IVideoModeList* CIrrDeviceLinux::getVideoModeList()
 				crtc_x = crtc_y = -1;
 
 				XRRScreenResources* res = XRRGetScreenResources(display, DefaultRootWindow(display));
-
 				if (!res)
 					break;
 				
@@ -1633,49 +1658,39 @@ video::IVideoModeList* CIrrDeviceLinux::getVideoModeList()
 		
 				for (int i = 0; i < res->noutput; i++) 
 				{
-					output = XRRGetOutputInfo(display, res, res->outputs[i]);
-					
-					if (!output || !output->crtc || output->connection == RR_Disconnected) 
+					XRROutputInfo* output_tmp = XRRGetOutputInfo(display, res, res->outputs[i]);
+					if (!output_tmp || !output_tmp->crtc || output_tmp->connection == RR_Disconnected) 
 					{
-						XRRFreeOutputInfo(output);
+						XRRFreeOutputInfo(output_tmp);
 						continue;
 					}
 		
-					crtc = XRRGetCrtcInfo(display, res, output->crtc);
-		
-					if (!crtc) 
+					XRRCrtcInfo* crtc_tmp = XRRGetCrtcInfo(display, res, output_tmp->crtc);
+					if (!crtc_tmp) 
+					{
+						XRRFreeOutputInfo(output_tmp);
+						continue;
+					}
+					
+					if (res->outputs[i] == primary_id ||
+						output_id == BadRROutput || crtc_tmp->x < crtc->x ||
+						(crtc_tmp->x == crtc->x && crtc_tmp->y < crtc->y))
 					{
 						XRRFreeCrtcInfo(crtc);
-						XRRFreeOutputInfo(output);
-						continue;
+						XRRFreeOutputInfo(output);		
+						
+						output = output_tmp;
+						crtc = crtc_tmp;					
+						output_id = res->outputs[i];
+					}
+					else
+					{
+						XRRFreeCrtcInfo(crtc_tmp);
+						XRRFreeOutputInfo(output_tmp);			
 					}
 					
 					if (res->outputs[i] == primary_id)
-					{
-						crtc_x = crtc->x;
-						crtc_y = crtc->y;	
-						output_id = res->outputs[i];
-						
-						XRRFreeCrtcInfo(crtc);
-						XRRFreeOutputInfo(output);
 						break;
-					}
-					
-					if (crtc_x == -1 || crtc->x < crtc_x)
-					{
-						crtc_x = crtc->x;
-						crtc_y = crtc->y;						
-						output_id = res->outputs[i];
-					}
-					else if (crtc_x == crtc->x && crtc->y < crtc_y)
-					{
-						crtc_x = crtc->x;
-						crtc_y = crtc->y;
-						output_id = res->outputs[i];			
-					}
-					
-					XRRFreeCrtcInfo(crtc);
-					XRRFreeOutputInfo(output);
 				}
 				
 				if (output_id == BadRROutput)
@@ -1683,9 +1698,9 @@ video::IVideoModeList* CIrrDeviceLinux::getVideoModeList()
 					os::Printer::log("Could not get video output.", ELL_WARNING);
 					break;
 				}
-
-				output = XRRGetOutputInfo(display, res, output_id);
-				crtc = XRRGetCrtcInfo(display, res, output->crtc);
+				
+				crtc_x = crtc->x;
+				crtc_y = crtc->y;
 
 				for (int i = 0; i < res->nmode; i++)
 				{
@@ -1719,8 +1734,7 @@ video::IVideoModeList* CIrrDeviceLinux::getVideoModeList()
 				
 				XRRFreeCrtcInfo(crtc);
 				XRRFreeOutputInfo(output);
-				XRRFreeScreenResources(res);	
-							
+				XRRFreeScreenResources(res);						
 				break;
 			}
 			#endif

@@ -1,8 +1,6 @@
 #ifndef GPUPARTICLES_H
 #define GPUPARTICLES_H
 
-#include "graphics/glwrap.hpp"
-
 #include "../lib/irrlicht/source/Irrlicht/CParticleSystemSceneNode.h"
 #include <ISceneManager.h>
 #include <IParticleSystemSceneNode.h>
@@ -81,6 +79,7 @@ public:
     const float* getColorTo() const { return m_color_to; }
     void setHeightmap(const std::vector<std::vector<float> >&, float, float, float, float);
     void setFlip();
+    bool update();
 };
 
 #endif // GPUPARTICLES_H

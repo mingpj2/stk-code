@@ -25,7 +25,6 @@ using namespace irr;
 
 #include "graphics/material_manager.hpp"
 #include "graphics/mesh_tools.hpp"
-#include "graphics/stkinstancedscenenode.hpp"
 #include "io/file_manager.hpp"
 #include "io/xml_node.hpp"
 #include "modes/world.hpp"
@@ -241,16 +240,6 @@ void PhysicalObject::init()
             Log::fatal("PhysicalObject", "Unknown node type");
         }
     }
-    else if (dynamic_cast<TrackObjectPresentationInstancing*>(presentation) != NULL)
-    {
-        TrackObjectPresentationInstancing* instancing = dynamic_cast<TrackObjectPresentationInstancing*>(presentation);
-        STKInstancedSceneNode* instancing_group = instancing->getInstancingGroup();
-        if (instancing_group != NULL)
-        {
-            scene::IMesh* mesh = instancing_group->getMesh();
-            MeshTools::minMax3D(mesh, &min, &max);
-        }
-    }
     else
     {
         Log::fatal("PhysicalObject", "Unknown node type");
@@ -318,6 +307,8 @@ void PhysicalObject::init()
     }
     case MP_EXACT:
     {
+        m_graphical_offset = Vec3(0,0,0);
+        extend.setY(0);
         TriangleMesh* triangle_mesh = new TriangleMesh();
 
         // In case of readonly materials we have to get the material from
@@ -482,7 +473,8 @@ void PhysicalObject::init()
     }
 
     World::getWorld()->getPhysics()->addBody(m_body);
-
+    if(m_triangle_mesh)
+        m_triangle_mesh->setBody(m_body);
 }   // init
 
 // ----------------------------------------------------------------------------
@@ -514,6 +506,36 @@ void PhysicalObject::update(float dt)
                    scale, false);
     return;
 }   // update
+
+// ----------------------------------------------------------------------------
+/** Does a raycast against this physical object. The physical object must
+ *  have an 'exact' shape, i.e. be a triangle mesh (for other physical objects
+ *  no material information would be available).
+ *  \param from/to The from and to position for the raycast.
+ *  \param xyz The position in world where the ray hit.
+ *  \param material The material of the mesh that was hit.
+ *  \param normal The intrapolated normal at that position.
+ *  \param interpolate_normal If true, the returned normal is the interpolated
+ *         based on the three normals of the triangle and the location of the
+ *         hit point (which is more compute intensive, but results in much
+ *         smoother results).
+ *  \return True if a triangle was hit, false otherwise (and no output
+ *          variable will be set.
+ */
+bool PhysicalObject::castRay(const btVector3 &from, const btVector3 &to, 
+                             btVector3 *hit_point, const Material **material, 
+                             btVector3 *normal, bool interpolate_normal) const
+{
+    if(m_body_type!=MP_EXACT)
+    {
+        Log::warn("PhysicalObject", "Can only raycast against 'exact' meshes.");
+        return false;
+    }
+    bool result = m_triangle_mesh->castRay(from, to, hit_point, 
+                                           material, normal, 
+                                           interpolate_normal);
+    return result;
+}   // castRay
 
 // ----------------------------------------------------------------------------
 void PhysicalObject::reset()

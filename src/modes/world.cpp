@@ -121,6 +121,7 @@ World::World() : WorldStatus(), m_clear_color(255,100,101,140)
     m_self_destruct      = false;
     m_schedule_tutorial  = false;
     m_is_network_world   = false;
+    m_weather            = NULL;
 
     m_stop_music_when_dialog_open = true;
 
@@ -195,6 +196,12 @@ void World::init()
         ReplayPlay::get()->Load();
 
     powerup_manager->updateWeightsForRace(num_karts);
+    
+    if (UserConfigParams::m_weather_effects)
+    {
+        m_weather = new Weather(m_track->getWeatherLightning(), 
+                          m_track->getWeatherSound());
+    }
 }   // init
 
 //-----------------------------------------------------------------------------
@@ -262,7 +269,6 @@ void World::reset()
 
     //Reset the Rubber Ball Collect Time to some negative value.
     powerup_manager->setBallCollectTime(-100);
-
 }   // reset
 
 //-----------------------------------------------------------------------------
@@ -376,6 +382,9 @@ World::~World()
         // gui and this must be deleted.
         delete m_race_gui;
     }
+    
+    if (m_weather != NULL)
+        delete m_weather;
 
     for ( unsigned int i = 0 ; i < m_karts.size() ; i++ )
         delete m_karts[i];
@@ -679,9 +688,7 @@ void World::resetAllKarts()
 
     for ( KartList::iterator i=m_karts.begin(); i!=m_karts.end(); i++)
     {
-        // Update the kart transforms with the newly computed position
-        // after all karts are reset
-        (*i)->setTrans((*i)->getBody()->getWorldTransform());
+        (*i)->kartIsInRestNow();
     }
 
     // Initialise the cameras, now that the correct kart positions are set
@@ -801,6 +808,7 @@ void World::updateWorld(float dt)
     }
     catch (AbortWorldUpdateException& e)
     {
+        (void)e;   // avoid compiler warning
         return;
     }
 
@@ -904,30 +912,45 @@ void World::update(float dt)
     }
 #endif
 
+    PROFILER_PUSH_CPU_MARKER("World::update (sub-updates)", 0x20, 0x7F, 0x00);
     history->update(dt);
     if(ReplayRecorder::get()) ReplayRecorder::get()->update(dt);
     if(ReplayPlay::get()) ReplayPlay::get()->update(dt);
     if(history->replayHistory()) dt=history->getNextDelta();
     WorldStatus::update(dt);
+    PROFILER_POP_CPU_MARKER();
 
     if (!history->dontDoPhysics())
     {
         m_physics->update(dt);
     }
 
+    PROFILER_PUSH_CPU_MARKER("World::update (AI)", 0x40, 0x7F, 0x00);
     const int kart_amount = m_karts.size();
     for (int i = 0 ; i < kart_amount; ++i)
     {
         // Update all karts that are not eliminated
         if(!m_karts[i]->isEliminated()) m_karts[i]->update(dt) ;
     }
+    PROFILER_POP_CPU_MARKER();
 
+    PROFILER_PUSH_CPU_MARKER("World::update (camera)", 0x60, 0x7F, 0x00);
     for(unsigned int i=0; i<Camera::getNumCameras(); i++)
     {
         Camera::getCamera(i)->update(dt);
     }
+    PROFILER_POP_CPU_MARKER();
 
+    PROFILER_PUSH_CPU_MARKER("World::update (weather)", 0x80, 0x7F, 0x00);
+    if (UserConfigParams::m_graphical_effects && m_weather)
+    {
+        m_weather->update(dt);
+    }
+    PROFILER_POP_CPU_MARKER();
+
+    PROFILER_PUSH_CPU_MARKER("World::update (projectiles)", 0xa0, 0x7F, 0x00);
     projectile_manager->update(dt);
+    PROFILER_POP_CPU_MARKER();
 
     PROFILER_POP_CPU_MARKER();
 

@@ -112,6 +112,10 @@ IrrDriver::IrrDriver()
     m_mipviz = m_wireframe = m_normals = m_ssaoviz = \
         m_lightviz = m_shadowviz = m_distortviz = m_rsm = m_rh = m_gi = false;
     SkyboxCubeMap = m_last_light_bucket_distance = 0;
+    m_shadow_camnodes[0] = NULL;
+    m_shadow_camnodes[1] = NULL;
+    m_shadow_camnodes[2] = NULL;
+    m_shadow_camnodes[3] = NULL;
     memset(object_count, 0, sizeof(object_count));
 }   // IrrDriver
 
@@ -164,6 +168,11 @@ STKRenderingPass IrrDriver::getPhase() const
 void IrrDriver::IncreaseObjectCount()
 {
     object_count[m_phase]++;
+}
+
+void IrrDriver::IncreasePolyCount(unsigned Polys)
+{
+    poly_count[m_phase] += Polys;
 }
 
 core::array<video::IRenderTarget> &IrrDriver::getMainSetup()
@@ -470,6 +479,7 @@ void IrrDriver::initDevice()
 
         m_need_ubo_workaround = false;
         m_need_rh_workaround = false;
+        m_need_srgb_workaround = false;
 #ifdef WIN32
         // Fix for Intel Sandy Bridge on Windows which supports GL up to 3.1 only
         if (strstr((const char *)glGetString(GL_VENDOR), "Intel") != NULL && (GLMajorVersion == 3 && GLMinorVersion == 1))
@@ -478,19 +488,51 @@ void IrrDriver::initDevice()
         // Fix for Nvidia and instanced RH
         if (strstr((const char *)glGetString(GL_VENDOR), "NVIDIA") != NULL)
             m_need_rh_workaround = true;
+
+        // Fix for AMD and bindless sRGB textures
+        if (strstr((const char *)glGetString(GL_VENDOR), "ATI") != NULL)
+            m_need_srgb_workaround = true;
     }
-    m_glsl = (GLMajorVersion > 3 || (GLMajorVersion == 3 && GLMinorVersion >= 1));
+    m_glsl = (GLMajorVersion > 3 || (GLMajorVersion == 3 && GLMinorVersion >= 3));
+    initGL();
 
     // Parse extensions
     hasVSLayer = false;
+    hasBaseInstance = false;
+    hasBuffserStorage = false;
+    hasDrawIndirect = false;
+    hasComputeShaders = false;
+    hasTextureStorage = false;
     // Default false value for hasVSLayer if --no-graphics argument is used
+#if !defined(__APPLE__)
     if (!ProfileWorld::isNoGraphics())
     {
         if (hasGLExtension("GL_AMD_vertex_shader_layer")) {
             hasVSLayer = true;
+            Log::info("GLDriver", "AMD Vertex Shader Layer enabled");
+        }
+        if (hasGLExtension("GL_ARB_buffer_storage")) {
+            hasBuffserStorage = true;
+            Log::info("GLDriver", "ARB Buffer Storage enabled");
+        }
+        if (hasGLExtension("GL_ARB_base_instance")) {
+            hasBaseInstance = true;
+            Log::info("GLDriver", "ARB Base Instance enabled");
+        }
+        if (hasGLExtension("GL_ARB_draw_indirect")) {
+            hasDrawIndirect = true;
+            Log::info("GLDriver", "ARB Draw Indirect enabled");
+        }
+        if (hasGLExtension("GL_ARB_compute_shader")) {
+            hasComputeShaders = true;
+            Log::info("GLDriver", "ARB Compute Shader enabled");
+        }
+        if (hasGLExtension("GL_ARB_texture_storage")) {
+            hasTextureStorage = true;
+            Log::info("GLDriver", "ARB Texture Storage enabled");
         }
     }
-
+#endif
 
 
     // This remaps the window, so it has to be done before the clear to avoid flicker
@@ -516,8 +558,7 @@ void IrrDriver::initDevice()
         m_mrt.clear();
         m_mrt.reallocate(2);
 
-        irr::video::COpenGLDriver*    gl_driver = (irr::video::COpenGLDriver*)m_device->getVideoDriver();
-        gl_driver->extGlGenQueries(1, &m_lensflare_query);
+        glGenQueries(1, &m_lensflare_query);
         m_query_issued = false;
 
         scene::IMesh * const sphere = m_scene_manager->getGeometryCreator()->createSphereMesh(1, 16, 16);
@@ -1604,6 +1645,7 @@ video::ITexture* IrrDriver::applyMask(video::ITexture* texture,
 // ----------------------------------------------------------------------------
 void IrrDriver::setRTT(RTT* rtt)
 {
+    memset(m_shadow_camnodes, 0, 4 * sizeof(void*));
     m_rtts = rtt;
 }
 // ----------------------------------------------------------------------------
@@ -1701,29 +1743,20 @@ void IrrDriver::displayFPS()
     if (low > kilotris) low = kilotris;
     if (high < kilotris) high = kilotris;
 
-    static char buffer[128];
+    core::stringw fpsString;
 
     if (UserConfigParams::m_artist_debug_mode)
     {
-        sprintf(
-            buffer, "FPS: %i/%i/%i - Objects (P1:%d P2:%d T:%d) - LightDst : ~%d",
-            min, fps, max,
-            object_count[SOLID_NORMAL_AND_DEPTH_PASS],
-            object_count[SOLID_NORMAL_AND_DEPTH_PASS],
-            object_count[TRANSPARENT_PASS],
-            m_last_light_bucket_distance
-        );
+        fpsString = StringUtils::insertValues(_("FPS: %d/%d/%d  - PolyCount: %d Solid, %d Shadows - LightDist : %d"),
+            min, fps, max, poly_count[SOLID_NORMAL_AND_DEPTH_PASS], poly_count[SHADOW_PASS], m_last_light_bucket_distance);
+        poly_count[SOLID_NORMAL_AND_DEPTH_PASS] = 0;
+        poly_count[SHADOW_PASS] = 0;
         object_count[SOLID_NORMAL_AND_DEPTH_PASS] = 0;
         object_count[SOLID_NORMAL_AND_DEPTH_PASS] = 0;
         object_count[TRANSPARENT_PASS] = 0;
     }
     else
-    {
-        sprintf(buffer, "FPS: %i/%i/%i - %i KTris", min, fps, max,
-                (int)roundf(kilotris));
-    }
-
-    core::stringw fpsString = buffer;
+        fpsString = StringUtils::insertValues(_("FPS: %d/%d/%d - %d KTris"), min, fps, max, (int)roundf(kilotris));
 
     static video::SColor fpsColor = video::SColor(255, 0, 0, 0);
 
@@ -2417,8 +2450,8 @@ scene::ISceneNode *IrrDriver::addLight(const core::vector3df &pos, float energy,
 
         if (sun)
         {
-            m_sun_interposer->setPosition(pos);
-            m_sun_interposer->updateAbsolutePosition();
+            //m_sun_interposer->setPosition(pos);
+            //m_sun_interposer->updateAbsolutePosition();
 
             m_lensflare->setPosition(pos);
             m_lensflare->updateAbsolutePosition();
