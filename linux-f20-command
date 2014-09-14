@@ -1,0 +1,21 @@
+#!/bin/bash
+#linux-f20-command
+
+#note: libglew dependency 
+#download and extract  glew libGLEW libGLEW-devel  packages to  ~/glewlib/  built from:
+#http://mirrors.kernel.org/fedora/development/21/source/SRPMS/g/glew-1.10.0-5.fc21.src.rpm
+
+
+cmake .. -DGLEW_INCLUDE_DIR=~/glewlib/inlcude -DGLEW_LIBRARY=~/glewlib/lib/libGLEW.so -DUSE_WIIUSE=0
+
+if [ $? -ne 0 ]; then echo Error config!; exit 1; fi
+
+
+CPATH=~/glewlib/include LIBRARY_PATH=~/glewlib/lib make -j2
+
+if [ $? -ne 0 ]; then echo Error make!; exit 1; fi
+
+
+#use VERBOSE=1 in make command arguments
+
+
