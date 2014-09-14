@@ -31,7 +31,10 @@ all:
 	##- ls -ld /usr/share/debootstrap/scripts/*
 	####  - bash $TRAVIS_BUILD_DIR/linux-conf-command3
 	grep 'Essential' /usr/share/debootstrap/scripts/gutsy
-	sudo sed -e 's/Essential: yes)\"/Essential: yes) sudo cmake libogg-dev libvorbis-dev  libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev libgl1-mesa-dev libglu1-mesa-dev \"/' -i /usr/share/debootstrap/scripts/gutsy
+  - sudo apt-get install libgl1-mesa-dev libglu1-mesa-dev libglew-dev cmake
+script:
+
+	sudo sed -e 's/Essential: yes)\"/Essential: yes) sudo cmake libogg-dev libvorbis-dev  libxxf86vm-dev libcurl4-openssl-dev libfribidi-dev libbluetooth-dev libgl1-mesa-dev libglu1-mesa-dev libglew-dev \"/' -i /usr/share/debootstrap/scripts/gutsy
 	grep 'Essential' /usr/share/debootstrap/scripts/gutsy
 	
 	# Install chroot system -- debootstrap install the chroot 
